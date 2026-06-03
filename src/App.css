@@ -1,0 +1,93 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #0f1220;
+  color: white;
+}
+
+.container {
+  text-align: center;
+  padding: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(10, 60px);
+  gap: 4px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.cell {
+  width: 60px;
+  height: 60px;
+
+  border: 2px solid #999;
+
+  background: white;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  cursor: pointer;
+
+  font-size: 32px;
+  user-select: none;
+
+  color: black;
+}
+
+.track {
+  background: #90caf9;
+}
+
+.start {
+  background: #66bb6a;
+  color: white;
+}
+
+.goal {
+  background: #ef5350;
+  color: white;
+}
+
+.clear {
+  color: #4caf50;
+}
+
+.toolbar {
+  margin-bottom: 20px;
+}
+
+.toolbar button {
+  width: 60px;
+  height: 60px;
+
+  margin: 4px;
+
+  font-size: 28px;
+
+  cursor: pointer;
+}
+
+.selected {
+  background: #90caf9;
+}
+
+.connected-special {
+  background: #90caf9 !important;
+  color: black;
+  font-weight: bold;
+}
+
+.connected-signal {
+  background: #90caf9 !important;
+  font-weight: bold;
+}
+
+.connected-tunnel {
+  background: mediumorchid !important;
+  color: white;
+  font-weight: bold;
+}
