@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>いろガラスパズル</title>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0d1117;
+  --surface:  #161b27;
+  --surface2: #1e2535;
+  --border:   #2a3350;
+  --text:     #e8eaf6;
+  --text2:    #8892b0;
+  --text3:    #4a5568;
+
+  --c0: #4a90d9; --c0l: #a8d4f5; --c0bg: rgba(74,144,217,0.18);
+  --c1: #e05c5c; --c1l: #f5a8a8; --c1bg: rgba(224,92,92,0.18);
+  --c2: #50b97a; --c2l: #a8e8c0; --c2bg: rgba(80,185,122,0.18);
+  --c3: #e0a040; --c3l: #f5d08a; --c3bg: rgba(224,160,64,0.18);
+  --c4: #9b6de0; --c4l: #d4b0f5; --c4bg: rgba(155,109,224,0.18);
+
+  --cell: 56px;
+  --gap:  4px;
+  --r:    10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px 40px;
+  user-select: none;
+}
+
+/* ── SCREENS ── */
+.screen { display: none; width: 100%; max-width: 580px; flex-direction: column; align-items: center; gap: 20px; }
+.screen.active { display: flex; }
+
+/* ── TITLE ── */
+.title-glass {
+  width: 100%; height: 110px;
+  background: var(--surface);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  overflow: hidden; position: relative;
+}
+.glass-shard {
+  border-radius: 8px;
+  opacity: 0.85;
+  animation: shardPulse 2.4s ease-in-out infinite alternate;
+}
+@keyframes shardPulse { from { opacity: 0.6; } to { opacity: 1; } }
+
+.game-title { font-size: 36px; font-weight: 900; letter-spacing: -1px; text-align: center; }
+.game-title span { color: #4a90d9; }
+.title-desc {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px 22px;
+  font-size: 14px; color: var(--text2); line-height: 1.8; text-align: center;
+}
+.title-desc strong { color: var(--text); }
+
+.btn-main {
+  background: #4a90d9; color: #fff; border: none;
+  border-radius: 999px; padding: 15px 52px;
+  font-size: 17px; font-weight: 800; font-family: inherit;
+  cursor: pointer; transition: filter .15s, transform .12s;
+}
+.btn-main:hover { filter: brightness(1.15); transform: translateY(-2px); }
+.btn-main:active { transform: scale(.97); }
+
+/* ── TOP BAR ── */
+.top-bar {
+  width: 100%; display: flex; align-items: center;
+  justify-content: space-between; gap: 10px;
+}
+.mode-badge {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 5px 16px;
+  font-size: 12px; font-weight: 800; color: var(--text2);
+}
+.mode-badge.tut { color: #4a90d9; border-color: #4a90d9; }
+.mode-badge.puz { color: #50b97a; border-color: #50b97a; }
+.progress-wrap { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.progress-label { font-size: 11px; color: var(--text3); font-weight: 700; text-align: right; }
+.progress-track { height: 5px; background: var(--surface2); border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 999px; transition: width .4s ease; }
+
+/* ── MESSAGE BOX ── */
+.msg-box {
+  width: 100%; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 14px 18px; font-size: 14px; font-weight: 700;
+  color: var(--text); line-height: 1.75; text-align: center;
+  min-height: 56px;
+}
+.msg-box .hi { color: #4a90d9; }
+.msg-box .go { color: #50b97a; }
+.msg-box .warn { color: #e0a040; }
+
+/* ── FRACTION DISPLAY ── */
+.frac-display {
+  display: flex; align-items: center; justify-content: center;
+  gap: 24px; flex-wrap: wrap; padding: 10px 0;
+}
+.frac-item {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.frac-chip {
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 8px 16px; min-width: 64px;
+  transition: border-color .2s;
+}
+.frac-chip.done { border-color: #50b97a; background: rgba(80,185,122,.12); }
+.frac-chip .fn { font-size: 22px; font-weight: 900; line-height: 1; }
+.frac-chip .fb { height: 2px; width: 28px; border-radius: 1px; margin: 3px 0; }
+.frac-chip .fd { font-size: 22px; font-weight: 900; line-height: 1; }
+.frac-label { font-size: 11px; color: var(--text3); font-weight: 700; }
+.frac-count { font-size: 12px; font-weight: 800; }
+
+/* ── GRID ── */
+.grid-wrap {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 16px;
+}
+.grid {
+  display: grid;
+  gap: var(--gap);
+}
+.cell {
+  width: var(--cell); height: var(--cell);
+  border-radius: var(--r);
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .1s, border-color .15s;
+  overflow: hidden;
+}
+.cell:hover:not(.locked):not(.empty-locked) { transform: scale(1.06); border-color: rgba(255,255,255,.3); }
+.cell.filled { border-color: transparent; }
+.cell.hint { border-width: 2.5px; cursor: default; }
+.cell.locked { cursor: default; }
+
+.cell .cell-frac {
+  display: flex; flex-direction: column; align-items: center;
+  line-height: 1.1; z-index: 2; pointer-events: none;
+}
+.cell .cell-frac .cf-n { font-size: 15px; font-weight: 900; line-height: 1; }
+.cell .cell-frac .cf-b { height: 1.5px; width: 18px; border-radius: 1px; margin: 2px 0; }
+.cell .cell-frac .cf-d { font-size: 15px; font-weight: 900; line-height: 1; }
+
+/* glass shimmer overlay */
+.cell::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.12) 0%, transparent 60%);
+  pointer-events: none; border-radius: calc(var(--r) - 2px);
+  opacity: 0; transition: opacity .2s;
+}
+.cell.filled::after { opacity: 1; }
+
+/* pulse animation when placed */
+@keyframes cellPop {
+  0%   { transform: scale(.85); }
+  60%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.cell.popping { animation: cellPop .22s ease; }
+
+/* color classes */
+.col-0 { background: var(--c0bg); border-color: var(--c0); }
+.col-0.filled { background: var(--c0bg); }
+.col-0 .cf-n, .col-0 .cf-d { color: var(--c0l); }
+.col-0 .cf-b { background: var(--c0l); }
+
+.col-1 { background: var(--c1bg); border-color: var(--c1); }
+.col-1.filled { background: var(--c1bg); }
+.col-1 .cf-n, .col-1 .cf-d { color: var(--c1l); }
+.col-1 .cf-b { background: var(--c1l); }
+
+.col-2 { background: var(--c2bg); border-color: var(--c2); }
+.col-2.filled { background: var(--c2bg); }
+.col-2 .cf-n, .col-2 .cf-d { color: var(--c2l); }
+.col-2 .cf-b { background: var(--c2l); }
+
+.col-3 { background: var(--c3bg); border-color: var(--c3); }
+.col-3.filled { background: var(--c3bg); }
+.col-3 .cf-n, .col-3 .cf-d { color: var(--c3l); }
+.col-3 .cf-b { background: var(--c3l); }
+
+.col-4 { background: var(--c4bg); border-color: var(--c4); }
+.col-4.filled { background: var(--c4bg); }
+.col-4 .cf-n, .col-4 .cf-d { color: var(--c4l); }
+.col-4 .cf-b { background: var(--c4l); }
+
+/* ── COLOR PALETTE ── */
+.palette {
+  display: flex; gap: 10px; align-items: center; justify-content: center;
+  flex-wrap: wrap;
+}
+.pal-btn {
+  width: 44px; height: 44px; border-radius: 12px;
+  border: 2.5px solid transparent;
+  cursor: pointer; transition: transform .12s, border-color .15s;
+  position: relative;
+}
+.pal-btn:hover { transform: scale(1.1); }
+.pal-btn.selected { border-color: #fff; transform: scale(1.12); }
+.pal-btn.selected::after {
+  content: '✓';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 900; color: #fff;
+}
+.pal-btn.eraser {
+  background: var(--surface2) !important;
+  border-color: var(--border);
+  font-size: 20px; display: flex; align-items: center; justify-content: center;
+}
+.pal-btn.eraser.selected { border-color: #e05c5c; }
+.pal-count {
+  font-size: 11px; font-weight: 800; text-align: center; margin-top: 3px;
+}
+
+/* ── BOTTOM ACTIONS ── */
+.actions { display: flex; gap: 10px; width: 100%; }
+.btn-sub {
+  flex: 1; padding: 12px 0; border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text2);
+  font-size: 14px; font-weight: 800; font-family: inherit;
+  cursor: pointer; transition: background .15s;
+}
+.btn-sub:hover { background: var(--border); }
+.btn-check {
+  flex: 2; padding: 12px 0; border-radius: 12px; border: none;
+  background: #50b97a; color: #fff;
+  font-size: 15px; font-weight: 800; font-family: inherit;
+  cursor: pointer; transition: filter .15s;
+}
+.btn-check:hover { filter: brightness(1.1); }
+.btn-check:disabled { background: var(--surface2); color: var(--text3); cursor: not-allowed; }
+
+/* ── OVERLAY ── */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(10,12,20,.8);
+  align-items: center; justify-content: center;
+  z-index: 50;
+}
+.overlay.show { display: flex; }
+.ov-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 22px; padding: 32px 36px;
+  max-width: 400px; width: 90%; text-align: center;
+  animation: popIn .22s ease;
+}
+@keyframes popIn { from { transform: scale(.88); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.ov-icon { font-size: 52px; margin-bottom: 12px; }
+.ov-title { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+.ov-sub { font-size: 13px; color: var(--text2); line-height: 1.7; font-weight: 700; margin-bottom: 20px; }
+.ov-math {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 16px; margin-bottom: 18px;
+  font-size: 13px; text-align: left; line-height: 1.8;
+}
+.ov-math .mrow { display: flex; justify-content: space-between; padding: 2px 0; }
+.ov-math .mk { color: var(--text2); font-weight: 700; }
+.ov-math .mv { font-weight: 800; }
+.ov-btn {
+  background: #4a90d9; color: #fff; border: none;
+  border-radius: 999px; padding: 12px 36px;
+  font-size: 15px; font-weight: 800; font-family: inherit;
+  cursor: pointer; transition: filter .15s;
+}
+.ov-btn:hover { filter: brightness(1.12); }
+
+/* ── TUT EXTRA: fraction demo ── */
+.tut-demo {
+  display: flex; gap: 8px; align-items: center;
+  justify-content: center; flex-wrap: wrap; padding: 6px 0;
+}
+.tut-frac {
+  display: flex; flex-direction: column; align-items: center;
+  line-height: 1; font-weight: 900;
+}
+.tut-frac .tn { font-size: 20px; }
+.tut-frac .tb { height: 2px; width: 22px; border-radius: 1px; margin: 3px 0; }
+.tut-frac .td { font-size: 20px; }
+.tut-eq { font-size: 22px; color: var(--text2); }
+
+/* scrollable on small screens */
+.grid-wrap { overflow: auto; }
+</style>
+</head>
+<body>
+
+<!-- ======== TITLE ======== -->
+<div class="screen active" id="scr-title">
+  <div class="title-glass">
+    <div class="glass-shard" style="width:52px;height:72px;background:rgba(74,144,217,.5);animation-delay:.0s"></div>
+    <div class="glass-shard" style="width:36px;height:88px;background:rgba(224,92,92,.45);animation-delay:.4s"></div>
+    <div class="glass-shard" style="width:60px;height:60px;background:rgba(80,185,122,.5);animation-delay:.8s;border-radius:50%"></div>
+    <div class="glass-shard" style="width:44px;height:80px;background:rgba(224,160,64,.45);animation-delay:.2s"></div>
+    <div class="glass-shard" style="width:38px;height:66px;background:rgba(155,109,224,.5);animation-delay:.6s"></div>
+  </div>
+  <div>
+    <div class="game-title">いろガラス<span>パズル</span></div>
+    <div style="text-align:center;font-size:13px;color:var(--text2);font-weight:700;margin-top:4px;">分数をガラスで学ぼう</div>
+  </div>
+  <div class="title-desc">
+    グリッドを<strong>分数の通りに色分け</strong>しよう！<br>
+    同じ色はつながった形になるように塗ってね。<br>
+    全部ぴったり埋めたらクリア！
+  </div>
+  <button class="btn-main" onclick="startTutorial()">はじめる ▶</button>
+</div>
+
+<!-- ======== TUTORIAL ======== -->
+<div class="screen" id="scr-tut">
+  <div class="top-bar">
+    <span class="mode-badge tut" id="tut-badge">チュートリアル 1/4</span>
+    <div class="progress-wrap">
+      <div class="progress-label" id="tut-prog-label">1 / 4</div>
+      <div class="progress-track"><div class="progress-fill" id="tut-prog-fill" style="background:#4a90d9;width:25%"></div></div>
+    </div>
+  </div>
+  <div class="msg-box" id="tut-msg"></div>
+  <div class="tut-demo" id="tut-demo"></div>
+  <div class="grid-wrap"><div class="grid" id="tut-grid"></div></div>
+  <div class="palette" id="tut-palette"></div>
+  <div class="actions">
+    <button class="btn-sub" onclick="tutReset()">↩ リセット</button>
+    <button class="btn-check" id="tut-check" onclick="checkTutorial()">たしかめる ✓</button>
+  </div>
+</div>
+
+<!-- ======== PUZZLE ======== -->
+<div class="screen" id="scr-puz">
+  <div class="top-bar">
+    <span class="mode-badge puz" id="puz-badge">パズル 1/5</span>
+    <div class="progress-wrap">
+      <div class="progress-label" id="puz-prog-label">1 / 5</div>
+      <div class="progress-track"><div class="progress-fill" id="puz-prog-fill" style="background:#50b97a;width:20%"></div></div>
+    </div>
+  </div>
+  <div class="msg-box" id="puz-msg"></div>
+  <div class="frac-display" id="puz-fracs"></div>
+  <div class="grid-wrap"><div class="grid" id="puz-grid"></div></div>
+  <div class="palette" id="puz-palette"></div>
+  <div class="actions">
+    <button class="btn-sub" onclick="puzReset()">↩ リセット</button>
+    <button class="btn-check" id="puz-check" onclick="checkPuzzle()">たしかめる ✓</button>
+  </div>
+</div>
+
+<!-- ======== OVERLAYS ======== -->
+<div class="overlay" id="ov-ok">
+  <div class="ov-box">
+    <div class="ov-icon" id="ov-ok-icon">✨</div>
+    <div class="ov-title" id="ov-ok-title">せいかい！</div>
+    <div class="ov-sub" id="ov-ok-sub"></div>
+    <div class="ov-math" id="ov-ok-math" style="display:none"></div>
+    <button class="ov-btn" id="ov-ok-btn" onclick="nextStep()">つぎへ ▶</button>
+  </div>
+</div>
+<div class="overlay" id="ov-ng">
+  <div class="ov-box">
+    <div class="ov-icon">🤔</div>
+    <div class="ov-title">もう少し！</div>
+    <div class="ov-sub" id="ov-ng-sub"></div>
+    <button class="ov-btn" style="background:#e0a040" onclick="closeNg()">もう一度 ↩</button>
+  </div>
+</div>
+<div class="overlay" id="ov-done">
+  <div class="ov-box">
+    <div class="ov-icon">🏆</div>
+    <div class="ov-title">ぜんぶクリア！</div>
+    <div class="ov-sub">分数マスター！すごいね！<br>分母・分子・通分、ぜんぶできたよ。</div>
+    <button class="ov-btn" onclick="restartAll()">もう一度あそぶ ↗</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// COLORS
+// ═══════════════════════════════════════
+const COLORS = [
+  { id:0, solid:'#4a90d9', light:'#a8d4f5', bg:'rgba(74,144,217,.22)'  },
+  { id:1, solid:'#e05c5c', light:'#f5a8a8', bg:'rgba(224,92,92,.22)'   },
+  { id:2, solid:'#50b97a', light:'#a8e8c0', bg:'rgba(80,185,122,.22)'  },
+  { id:3, solid:'#e0a040', light:'#f5d08a', bg:'rgba(224,160,64,.22)'  },
+  { id:4, solid:'#9b6de0', light:'#d4b0f5', bg:'rgba(155,109,224,.22)' },
+];
+
+// ═══════════════════════════════════════
+// TUTORIAL DEFINITIONS
+// ═══════════════════════════════════════
+// type: 'basic' = show frac, paint N cells in 1-D strip
+//       'tonbun' = show same frac on different-size grids
+//       'combo'  = 1-D strip with 2 fracs summing to 1
+const TUTS = [
+  {
+    id: 1,
+    title: 'ぶんぼをしろう',
+    msg: 'グリッドのマスの数が「分母」だよ！\n下の <hi>8マス</hi> のグリッドを見てね。分母は <hi>8</hi> ！\nまず青を <hi>3マス</hi> だけ塗ってみよう。',
+    type: 'basic',
+    cols: 8, rows: 1,
+    targets: [ { colorIdx:0, count:3, frac:{n:3,d:8} } ],
+    demo: null,
+    successMsg: '3マス塗れた！分数の <go>3/8</go> は「8マスのうちの3マス」という意味だよ！',
+  },
+  {
+    id: 2,
+    title: 'つうぶんをしろう',
+    msg: '<hi>1/2</hi> は「2つに分けた1つ分」。\nでもグリッドが4マスなら何マス塗ればいい？\n<hi>4マス</hi> のグリッドで <hi>1/2</hi> を塗ってみよう！',
+    type: 'tonbun',
+    grids: [
+      { cols:2, rows:1, targets:[{ colorIdx:0, count:1, frac:{n:1,d:2} }], label:'2マスの場合' },
+      { cols:4, rows:1, targets:[{ colorIdx:0, count:2, frac:{n:1,d:2} }], label:'4マスの場合' },
+      { cols:8, rows:1, targets:[{ colorIdx:0, count:4, frac:{n:1,d:2} }], label:'8マスの場合' },
+    ],
+    msg2: '同じ <hi>1/2</hi> でもグリッドのマス数で塗る数が変わる！これが <warn>通分</warn> のもとになる考え方だよ。',
+    successMsg: 'ぜんぶ塗れた！<go>1/2 = 2/4 = 4/8</go> — 同じ大きさだね！',
+  },
+  {
+    id: 3,
+    title: 'ふたつの分数',
+    msg: '8マスを <hi>青 3/8</hi> と <hi>赤 5/8</hi> に塗り分けよう！\n合計がちょうど <hi>8/8</hi> になるようにね。',
+    type: 'combo',
+    cols: 8, rows: 1,
+    targets: [
+      { colorIdx:0, count:3, frac:{n:3,d:8} },
+      { colorIdx:1, count:5, frac:{n:5,d:8} },
+    ],
+    successMsg: '<go>3/8 + 5/8 = 8/8 = 1</go>（ぜんぶ）！ぴったり！',
+  },
+  {
+    id: 4,
+    title: 'ちがう分母',
+    msg: '12マスを <hi>青 1/3</hi> と <hi>赤 1/4</hi> と <hi>緑 5/12</hi> に塗り分けよう！\n<hi>1/3 = 4/12</hi>、<hi>1/4 = 3/12</hi> だよ！',
+    type: 'combo',
+    cols: 12, rows: 1,
+    targets: [
+      { colorIdx:0, count:4, frac:{n:1,d:3}, display:{n:1,d:3}, hint:'1/3 = 4/12' },
+      { colorIdx:1, count:3, frac:{n:1,d:4}, display:{n:1,d:4}, hint:'1/4 = 3/12' },
+      { colorIdx:2, count:5, frac:{n:5,d:12} },
+    ],
+    successMsg: '<go>1/3 + 1/4 + 5/12 = 12/12</go>！通分して考えられた！',
+  },
+];
+
+// ═══════════════════════════════════════
+// PUZZLE DEFINITIONS
+// ═══════════════════════════════════════
+// cells: array of {r,c} for each color region (hint cell = first in list)
+// fracs: [{colorIdx, n, d}]
+const PUZZLES = [
+  {
+    id:1, name:'はじめてのパズル',
+    cols:4, rows:4,
+    msg:'4×4のグリッドを分数の通りに塗り分けよう！\nヒントのマスは動かせないよ。',
+    fracs:[
+      { colorIdx:0, n:2, d:4 },
+      { colorIdx:1, n:2, d:4 },
+    ],
+    hints:[
+      { r:0, c:0, colorIdx:0 },
+      { r:3, c:3, colorIdx:1 },
+    ],
+    solution:[
+      [0,0,1,1],
+      [0,0,1,1],
+      [0,0,1,1],
+      [0,0,1,1],
+    ],
+  },
+  {
+    id:2, name:'みっつの色',
+    cols:4, rows:3,
+    msg:'12マスを3色に塗り分けよう！',
+    fracs:[
+      { colorIdx:0, n:1, d:3 },
+      { colorIdx:1, n:1, d:4 },
+      { colorIdx:2, n:5, d:12 },
+    ],
+    hints:[
+      { r:0, c:0, colorIdx:0 },
+      { r:1, c:1, colorIdx:1 },
+      { r:2, c:3, colorIdx:2 },
+    ],
+    solution:[
+      [0,0,0,0],
+      [1,1,1,2],
+      [2,2,2,2],
+    ],
+  },
+  {
+    id:3, name:'かたちをつくろう',
+    cols:4, rows:4,
+    msg:'ヒントのマスを起点に形を作ってね！\nつながった形でないとダメだよ。',
+    fracs:[
+      { colorIdx:0, n:3, d:8 },
+      { colorIdx:1, n:3, d:8 },
+      { colorIdx:2, n:2, d:8 },
+    ],
+    hints:[
+      { r:0, c:0, colorIdx:0 },
+      { r:0, c:3, colorIdx:1 },
+      { r:3, c:1, colorIdx:2 },
+    ],
+    solution:[
+      [0,0,1,1],
+      [0,2,2,1],
+      [0,-1,1,1],
+      [-1,2,-1,-1],
+    ],
+  },
+  {
+    id:4, name:'つうぶんパズル',
+    cols:6, rows:4,
+    msg:'24マスを <hi>1/2</hi>, <hi>1/3</hi>, <hi>1/6</hi> で塗り分けよう！',
+    fracs:[
+      { colorIdx:0, n:1, d:2 },
+      { colorIdx:1, n:1, d:3 },
+      { colorIdx:2, n:1, d:6 },
+    ],
+    hints:[
+      { r:0, c:0, colorIdx:0 },
+      { r:0, c:5, colorIdx:1 },
+      { r:3, c:5, colorIdx:2 },
+    ],
+    solution:[
+      [0,0,0,1,1,1],
+      [0,0,0,1,1,1],
+      [0,0,0,1,1,1],
+      [0,0,0,2,2,2],
+      // actually needs 24 cells: 6*4=24, 0=12,1=8,2=4
+    ],
+  },
+  {
+    id:5, name:'むずかしいかたち',
+    cols:5, rows:4,
+    msg:'20マスをぴったり塗り分けよう！\nつながった形を意識してね。',
+    fracs:[
+      { colorIdx:0, n:2, d:5 },
+      { colorIdx:1, n:1, d:4 },
+      { colorIdx:3, n:7, d:20 },
+    ],
+    hints:[
+      { r:0, c:0, colorIdx:0 },
+      { r:4-1, c:4, colorIdx:1 },
+      { r:1, c:2, colorIdx:3 },
+    ],
+    solution:[
+      [0,0,3,3,3],
+      [0,0,3,3,3],
+      [0,0,3,1,1],
+      [0,0,0,1,1],
+    ],
+  },
+];
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let mode = 'tut';      // 'tut' | 'puz'
+let tutIdx = 0;
+let puzIdx = 0;
+let selColor = 0;      // selected color index, -1 = eraser
+let tutState = [];     // flat array of colorIdx or -1
+let puzState = [];     // flat array of colorIdx or -1
+let tutDef = null;
+let puzDef = null;
+
+// for tonbun tut: 3 sub-grids
+let tonbunStates = [];
+let tonbunActive = 0;
+
+// ═══════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════
+function gcd(a,b){ return b===0?a:gcd(b,a%b); }
+function simplify(n,d){ const g=gcd(n,d); return {n:n/g,d:d/g}; }
+function fracStr(n,d){ return `${n}/${d}`; }
+
+function isConnected(cells, rows, cols) {
+  // BFS connectivity check
+  if(cells.length===0) return true;
+  const set = new Set(cells.map(([r,c])=>r*cols+c));
+  const visited = new Set();
+  const queue = [cells[0]];
+  visited.add(cells[0][0]*cols+cells[0][1]);
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+  while(queue.length){
+    const [r,c] = queue.shift();
+    for(const [dr,dc] of dirs){
+      const nr=r+dr, nc=c+dc, key=nr*cols+nc;
+      if(nr>=0&&nr<rows&&nc>=0&&nc<cols&&set.has(key)&&!visited.has(key)){
+        visited.add(key); queue.push([nr,nc]);
+      }
+    }
+  }
+  return visited.size === cells.length;
+}
+
+function popCell(el) {
+  el.classList.remove('popping');
+  void el.offsetWidth;
+  el.classList.add('popping');
+  el.addEventListener('animationend', ()=>el.classList.remove('popping'), {once:true});
+}
+
+function closeOverlays() {
+  ['ov-ok','ov-ng','ov-done'].forEach(id=>document.getElementById(id).classList.remove('show'));
+}
+
+// ═══════════════════════════════════════
+// PALETTE BUILDER
+// ═══════════════════════════════════════
+function buildPalette(containerId, colorIdxs, showCounts, countGetter) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  colorIdxs.forEach(ci => {
+    const col = COLORS[ci];
+    const btn = document.createElement('div');
+    btn.className = 'pal-btn' + (selColor===ci?' selected':'');
+    btn.style.background = col.bg;
+    btn.style.borderColor = col.solid;
+    btn.onclick = () => { selColor = ci; refreshPalette(containerId, colorIdxs, showCounts, countGetter); };
+    el.appendChild(btn);
+    if(showCounts) {
+      const lbl = document.createElement('div');
+      lbl.className = 'pal-count';
+      lbl.style.color = col.solid;
+      lbl.id = `pc-${containerId}-${ci}`;
+      el.appendChild(lbl);
+    }
+  });
+  // eraser
+  const era = document.createElement('div');
+  era.className = 'pal-btn eraser' + (selColor===-1?' selected':'');
+  era.textContent = '🗑';
+  era.onclick = () => { selColor=-1; refreshPalette(containerId, colorIdxs, showCounts, countGetter); };
+  el.appendChild(era);
+}
+
+function refreshPalette(containerId, colorIdxs, showCounts, countGetter) {
+  const el = document.getElementById(containerId);
+  el.querySelectorAll('.pal-btn').forEach((btn,i) => {
+    const ci = i < colorIdxs.length ? colorIdxs[i] : -1;
+    btn.classList.toggle('selected', selColor===ci);
+  });
+  if(showCounts && countGetter) {
+    colorIdxs.forEach(ci => {
+      const lbl = document.getElementById(`pc-${containerId}-${ci}`);
+      if(lbl) lbl.textContent = countGetter(ci);
+    });
+  }
+}
+
+// ═══════════════════════════════════════
+// CELL BUILDER
+// ═══════════════════════════════════════
+function buildCell(r, c, colorIdx, isHint, frac, locked) {
+  const cell = document.createElement('div');
+  cell.className = 'cell' + (colorIdx>=0?' filled col-'+colorIdx:'') + (isHint?' hint':'') + (locked?' locked':'');
+  cell.dataset.r = r; cell.dataset.c = c;
+  if(frac) {
+    const col = COLORS[colorIdx>=0?colorIdx:0];
+    const fc = document.createElement('div');
+    fc.className = 'cell-frac';
+    const fn = document.createElement('div'); fn.className='cf-n'; fn.textContent=frac.n;
+    const fb = document.createElement('div'); fb.className='cf-b';
+    const fd = document.createElement('div'); fd.className='cf-d'; fd.textContent=frac.d;
+    if(colorIdx>=0){ fn.style.color=col.light; fb.style.background=col.light; fd.style.color=col.light; }
+    fc.append(fn,fb,fd); cell.appendChild(fc);
+  }
+  return cell;
+}
+
+// ═══════════════════════════════════════
+// TUTORIAL
+// ═══════════════════════════════════════
+function startTutorial() {
+  document.getElementById('scr-title').classList.remove('active');
+  document.getElementById('scr-tut').classList.add('active');
+  tutIdx = 0;
+  loadTut();
+}
+
+function loadTut() {
+  tutDef = TUTS[tutIdx];
+  selColor = 0;
+  const pct = ((tutIdx+1)/TUTS.length*100).toFixed(0);
+  document.getElementById('tut-badge').textContent = `チュートリアル ${tutIdx+1}/${TUTS.length}`;
+  document.getElementById('tut-prog-label').textContent = `${tutIdx+1} / ${TUTS.length}`;
+  document.getElementById('tut-prog-fill').style.width = pct+'%';
+
+  // message (replace tags)
+  document.getElementById('tut-msg').innerHTML = tutDef.msg
+    .replace(/<hi>/g,'<span class="hi">').replace(/<\/hi>/g,'</span>')
+    .replace(/<warn>/g,'<span class="warn">').replace(/<\/warn>/g,'</span>')
+    .replace(/\n/g,'<br>');
+
+  if(tutDef.type === 'tonbun') {
+    loadTonbun();
+  } else {
+    loadTutGrid();
+  }
+}
+
+function loadTutGrid() {
+  const def = tutDef;
+  const total = def.cols * (def.rows||1);
+  tutState = new Array(total).fill(-1);
+  const colorIdxs = def.targets.map(t=>t.colorIdx);
+
+  // demo
+  document.getElementById('tut-demo').innerHTML = '';
+  if(def.id===4) {
+    // show conversion hint
+    const demo = document.getElementById('tut-demo');
+    def.targets.forEach(t => {
+      if(t.hint) {
+        const span = document.createElement('span');
+        span.style.cssText = `font-size:13px;font-weight:700;color:${COLORS[t.colorIdx].solid};margin:0 6px;`;
+        span.textContent = t.hint;
+        demo.appendChild(span);
+      }
+    });
+  }
+
+  // grid
+  const grid = document.getElementById('tut-grid');
+  grid.innerHTML = '';
+  grid.style.gridTemplateColumns = `repeat(${def.cols}, var(--cell))`;
+  for(let i=0;i<total;i++) {
+    const r=Math.floor(i/def.cols), c=i%def.cols;
+    const cell = buildCell(r,c,-1,false,null,false);
+    cell.onclick = ()=>paintTutCell(i, cell);
+    grid.appendChild(cell);
+  }
+
+  buildPalette('tut-palette', colorIdxs, true, ci=>{
+    const t=def.targets.find(t=>t.colorIdx===ci);
+    if(!t)return'';
+    const placed=tutState.filter(v=>v===ci).length;
+    const col=COLORS[ci];
+    return `<span style="color:${col.solid}">${placed}</span>/<span style="color:${col.light}">${t.count}</span>`;
+  });
+  refreshTutCounts();
+}
+
+function loadTonbun() {
+  const def = tutDef;
+  tonbunActive = 0;
+  tonbunStates = def.grids.map(g => new Array(g.cols*(g.rows||1)).fill(-1));
+
+  const grid = document.getElementById('tut-grid');
+  grid.innerHTML = '';
+
+  // build 3 mini grids stacked with labels
+  def.grids.forEach((g,gi) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-bottom:12px;';
+
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:12px;color:var(--text2);font-weight:700;margin-bottom:4px;text-align:center;';
+    lbl.textContent = g.label;
+    wrap.appendChild(lbl);
+
+    const miniGrid = document.createElement('div');
+    miniGrid.style.display = 'grid';
+    miniGrid.style.gridTemplateColumns = `repeat(${g.cols}, var(--cell))`;
+    miniGrid.style.gap = 'var(--gap)';
+    miniGrid.id = `tg-${gi}`;
+
+    const total = g.cols*(g.rows||1);
+    for(let i=0;i<total;i++){
+      const r=Math.floor(i/g.cols), c=i%g.cols;
+      const cell = buildCell(r,c,-1,false,null,false);
+      cell.onclick = ()=>paintTonbunCell(gi,i,cell);
+      miniGrid.appendChild(cell);
+    }
+    wrap.appendChild(miniGrid);
+    grid.appendChild(wrap);
+  });
+
+  grid.style.gridTemplateColumns = '1fr';
+  buildPalette('tut-palette',[0],false,null);
+}
+
+function paintTutCell(idx, cell) {
+  if(tutDef.type==='tonbun') return;
+  const ci = selColor;
+  if(ci===-1){ tutState[idx]=-1; }
+  else { tutState[idx]=ci; }
+  updateTutCell(cell, tutState[idx]);
+  popCell(cell);
+  refreshTutCounts();
+}
+
+function paintTonbunCell(gi, idx, cell) {
+  const ci = selColor;
+  tonbunStates[gi][idx] = ci===-1 ? -1 : ci;
+  updateTutCell(cell, tonbunStates[gi][idx]);
+  popCell(cell);
+}
+
+function updateTutCell(cell, ci) {
+  cell.className = 'cell' + (ci>=0?' filled col-'+ci:'');
+}
+
+function refreshTutCounts() {
+  if(!tutDef||tutDef.type==='tonbun') return;
+  const colorIdxs = tutDef.targets.map(t=>t.colorIdx);
+  refreshPalette('tut-palette', colorIdxs, true, ci=>{
+    const t=tutDef.targets.find(t=>t.colorIdx===ci);
+    if(!t) return '';
+    const placed=tutState.filter(v=>v===ci).length;
+    const col=COLORS[ci];
+    return `<span style="color:${col.solid}">${placed}</span>/<span style="color:${col.light}">${t.count}</span>`;
+  });
+}
+
+function tutReset() {
+  if(tutDef.type==='tonbun'){
+    tonbunStates = tutDef.grids.map(g=>new Array(g.cols*(g.rows||1)).fill(-1));
+    tutDef.grids.forEach((_,gi)=>{
+      document.getElementById(`tg-${gi}`).querySelectorAll('.cell').forEach(c=>{ c.className='cell'; });
+    });
+  } else {
+    tutState = new Array(tutState.length).fill(-1);
+    document.getElementById('tut-grid').querySelectorAll('.cell').forEach(c=>{ c.className='cell'; });
+    refreshTutCounts();
+  }
+}
+
+function checkTutorial() {
+  const def = tutDef;
+  let ok = false;
+  let msg = '';
+
+  if(def.type==='tonbun'){
+    // each sub-grid must have correct count of color 0
+    const results = def.grids.map((g,gi)=>{
+      const placed = tonbunStates[gi].filter(v=>v===0).length;
+      return placed === g.targets[0].count;
+    });
+    ok = results.every(Boolean);
+    if(!ok){
+      const first = results.findIndex(v=>!v);
+      const g = def.grids[first];
+      const placed = tonbunStates[first].filter(v=>v===0).length;
+      msg = `${g.label}：${placed}マス塗ったけど、正解は${g.targets[0].count}マスだよ！`;
+    }
+  } else {
+    const wrong = def.targets.filter(t => tutState.filter(v=>v===t.colorIdx).length !== t.count);
+    ok = wrong.length===0;
+    if(!ok){
+      const t=wrong[0];
+      const placed=tutState.filter(v=>v===t.colorIdx).length;
+      const col=COLORS[t.colorIdx];
+      msg = `${fracStr(t.frac.n,t.frac.d)} は ${t.count}マスだよ！今は${placed}マス塗ってるね。`;
+    }
+  }
+
+  if(ok){
+    showOk(def.successMsg, null, ()=>{
+      tutIdx++;
+      if(tutIdx>=TUTS.length){ startPuzzle(); }
+      else { closeOverlays(); loadTut(); }
+    });
+  } else {
+    showNg(msg);
+  }
+}
+
+// ═══════════════════════════════════════
+// PUZZLE
+// ═══════════════════════════════════════
+function startPuzzle() {
+  closeOverlays();
+  document.getElementById('scr-tut').classList.remove('active');
+  document.getElementById('scr-puz').classList.add('active');
+  puzIdx = 0;
+  loadPuz();
+}
+
+function loadPuz() {
+  puzDef = PUZZLES[puzIdx];
+  selColor = puzDef.fracs[0].colorIdx;
+
+  const pct = ((puzIdx+1)/PUZZLES.length*100).toFixed(0);
+  document.getElementById('puz-badge').textContent = `パズル ${puzIdx+1}/${PUZZLES.length}`;
+  document.getElementById('puz-prog-label').textContent = `${puzIdx+1} / ${PUZZLES.length}`;
+  document.getElementById('puz-prog-fill').style.width = pct+'%';
+
+  document.getElementById('puz-msg').innerHTML = puzDef.msg
+    .replace(/<hi>/g,'<span class="hi">').replace(/<\/hi>/g,'</span>')
+    .replace(/\n/g,'<br>');
+
+  const total = puzDef.cols * puzDef.rows;
+  puzState = new Array(total).fill(-1);
+
+  // set hints
+  puzDef.hints.forEach(h => {
+    puzState[h.r*puzDef.cols+h.c] = h.colorIdx;
+  });
+
+  buildPuzFracs();
+  buildPuzGrid();
+  buildPalette('puz-palette', puzDef.fracs.map(f=>f.colorIdx), true, ci=>{
+    const f=puzDef.fracs.find(f=>f.colorIdx===ci);
+    if(!f) return '';
+    const total=puzDef.cols*puzDef.rows;
+    const need=Math.round(f.n/f.d*total);
+    const placed=puzState.filter(v=>v===ci).length;
+    const col=COLORS[ci];
+    return `<span style="color:${col.solid}">${placed}</span>/<span style="color:${col.light}">${need}</span>`;
+  });
+}
+
+function buildPuzFracs() {
+  const el = document.getElementById('puz-fracs');
+  el.innerHTML = '';
+  const total = puzDef.cols*puzDef.rows;
+  puzDef.fracs.forEach(f => {
+    const col = COLORS[f.colorIdx];
+    const need = Math.round(f.n/f.d*total);
+    const item = document.createElement('div');
+    item.className='frac-item';
+    const chip = document.createElement('div');
+    chip.className='frac-chip'; chip.id=`fc-${f.colorIdx}`;
+    chip.style.borderColor = col.solid;
+    const fn=document.createElement('div'); fn.className='fn'; fn.textContent=f.n; fn.style.color=col.light;
+    const fb=document.createElement('div'); fn.className='fn';
+    const bar=document.createElement('div'); bar.className='fb'; bar.style.background=col.solid;
+    const fd=document.createElement('div'); fd.className='fd'; fd.textContent=f.d; fd.style.color=col.light;
+    chip.append(fn,bar,fd);
+    const lbl=document.createElement('div'); lbl.className='frac-label';
+    lbl.style.color=col.solid; lbl.textContent=`${need}マス`;
+    item.append(chip,lbl); el.appendChild(item);
+  });
+}
+
+function buildPuzGrid() {
+  const def = puzDef;
+  const grid = document.getElementById('puz-grid');
+  grid.innerHTML='';
+  grid.style.gridTemplateColumns=`repeat(${def.cols}, var(--cell))`;
+
+  for(let r=0;r<def.rows;r++){
+    for(let c=0;c<def.cols;c++){
+      const idx=r*def.cols+c;
+      const ci=puzState[idx];
+      const hint=def.hints.find(h=>h.r===r&&h.c===c);
+      const frac = hint ? def.fracs.find(f=>f.colorIdx===hint.colorIdx) : null;
+      const cell=buildCell(r,c,ci,!!hint,frac?{n:frac.n,d:frac.d}:null,!!hint);
+      if(!hint) cell.onclick=()=>paintPuzCell(idx,cell);
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function paintPuzCell(idx, cell) {
+  const ci = selColor;
+  puzState[idx] = ci;
+  // update visuals
+  cell.className = 'cell' + (ci>=0?' filled col-'+ci:'');
+  popCell(cell);
+  // update counts
+  refreshPalette('puz-palette', puzDef.fracs.map(f=>f.colorIdx), true, ci=>{
+    const f=puzDef.fracs.find(f=>f.colorIdx===ci);
+    if(!f) return '';
+    const total=puzDef.cols*puzDef.rows;
+    const need=Math.round(f.n/f.d*total);
+    const placed=puzState.filter(v=>v===ci).length;
+    const col=COLORS[ci];
+    return `<span style="color:${col.solid}">${placed}</span>/<span style="color:${col.light}">${need}</span>`;
+  });
+}
+
+function puzReset() {
+  puzState = new Array(puzDef.cols*puzDef.rows).fill(-1);
+  puzDef.hints.forEach(h=>{ puzState[h.r*puzDef.cols+h.c]=h.colorIdx; });
+  buildPuzGrid();
+  refreshPalette('puz-palette', puzDef.fracs.map(f=>f.colorIdx), true, ci=>{
+    const f=puzDef.fracs.find(f=>f.colorIdx===ci);
+    if(!f) return '';
+    const total=puzDef.cols*puzDef.rows;
+    const need=Math.round(f.n/f.d*total);
+    const placed=puzState.filter(v=>v===ci).length;
+    const col=COLORS[ci];
+    return `<span style="color:${col.solid}">${placed}</span>/<span style="color:${col.light}">${need}</span>`;
+  });
+}
+
+function checkPuzzle() {
+  const def = puzDef;
+  const total = def.cols*def.rows;
+  const errors = [];
+
+  // 1. check counts
+  def.fracs.forEach(f => {
+    const need = Math.round(f.n/f.d*total);
+    const placed = puzState.filter(v=>v===f.colorIdx).length;
+    if(placed!==need) errors.push(`${fracStr(f.n,f.d)}の色は${need}マス必要だよ（今${placed}マス）`);
+  });
+
+  // 2. check all filled
+  const empty = puzState.filter(v=>v===-1).length;
+  if(empty>0) errors.push(`まだ${empty}マス塗られていないよ！`);
+
+  if(errors.length>0){ showNg(errors[0]); return; }
+
+  // 3. check connectivity per color
+  for(const f of def.fracs){
+    const cells=[];
+    puzState.forEach((ci,idx)=>{ if(ci===f.colorIdx) cells.push([Math.floor(idx/def.cols),idx%def.cols]); });
+    if(!isConnected(cells,def.rows,def.cols)){
+      const col=COLORS[f.colorIdx];
+      errors.push(`<span style="color:${col.solid}">この色</span>がバラバラになってるよ！つながった形にしてね。`);
+    }
+  }
+
+  if(errors.length>0){ showNg(errors[0]); return; }
+
+  // build math card
+  const mathRows = def.fracs.map(f=>{
+    const col=COLORS[f.colorIdx];
+    const need=Math.round(f.n/f.d*total);
+    return `<div class="mrow"><span class="mk">${fracStr(f.n,f.d)}</span><span class="mv" style="color:${col.solid}">${need}マス</span></div>`;
+  }).join('');
+  const sumFracs = def.fracs.map(f=>`${f.n}/${f.d}`).join(' + ');
+  const math = `<div>${mathRows}<div class="mrow" style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px"><span class="mk">${sumFracs}</span><span class="mv" style="color:#50b97a">= 1（ぜんぶ）✓</span></div></div>`;
+
+  showOk(`パズル${def.id} クリア！`, math, ()=>{
+    puzIdx++;
+    if(puzIdx>=PUZZLES.length){ closeOverlays(); document.getElementById('ov-done').classList.add('show'); }
+    else { closeOverlays(); loadPuz(); }
+  });
+}
+
+// ═══════════════════════════════════════
+// OVERLAYS
+// ═══════════════════════════════════════
+let _nextCb = null;
+function showOk(sub, math, cb) {
+  _nextCb = cb;
+  document.getElementById('ov-ok-sub').innerHTML = sub
+    .replace(/<go>/g,'<span class="go">').replace(/<\/go>/g,'</span>')
+    .replace(/<hi>/g,'<span class="hi">').replace(/<\/hi>/g,'</span>');
+  const mathEl=document.getElementById('ov-ok-math');
+  if(math){ mathEl.innerHTML=math; mathEl.style.display=''; }
+  else { mathEl.style.display='none'; }
+  document.getElementById('ov-ok').classList.add('show');
+}
+function nextStep(){ if(_nextCb){ _nextCb(); } }
+function showNg(msg){
+  document.getElementById('ov-ng-sub').innerHTML = msg;
+  document.getElementById('ov-ng').classList.add('show');
+}
+function closeNg(){ document.getElementById('ov-ng').classList.remove('show'); }
+function restartAll(){
+  closeOverlays();
+  tutIdx=0; puzIdx=0;
+  document.getElementById('scr-puz').classList.remove('active');
+  document.getElementById('scr-title').classList.add('active');
+}
+</script>
+</body>
+</html>
