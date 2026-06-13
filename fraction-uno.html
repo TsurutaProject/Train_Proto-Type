@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ぶんすうUNO</title>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1923;
+  --felt: #1a4a2e;
+  --felt2: #153d25;
+  --border: #2d6b45;
+  --text: #f0f4e8;
+  --text2: #8aab8a;
+  --text3: #3d6b4a;
+  --gold: #f0c040;
+  --red:  #e05040;
+  --blue: #4a8cd9;
+  --grn:  #50b97a;
+  --pur:  #9b6de0;
+  --org:  #e09040;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 16px 12px 40px;
+  user-select: none;
+}
+.screen { display: none; width: 100%; max-width: 560px; flex-direction: column; align-items: center; gap: 16px; }
+.screen.active { display: flex; }
+
+/* ── TITLE ── */
+.title-cards {
+  display: flex; gap: 8px; justify-content: center; padding: 16px 0;
+  perspective: 400px;
+}
+.title-card-preview {
+  width: 56px; height: 80px; border-radius: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 2px solid rgba(255,255,255,.2);
+  animation: cardFloat 2s ease-in-out infinite alternate;
+  font-weight: 900; font-size: 14px;
+}
+@keyframes cardFloat { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(-8px) rotate(3deg); } }
+.game-title { font-size: 34px; font-weight: 900; text-align: center; }
+.game-title span { color: var(--gold); }
+.title-desc {
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px; padding: 16px 20px;
+  font-size: 13px; color: var(--text2); line-height: 1.85; text-align: center;
+}
+.title-desc strong { color: var(--text); }
+.title-rules {
+  width: 100%; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px; padding: 14px 18px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.rule-row { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text2); }
+.rule-icon { font-size: 16px; flex-shrink: 0; }
+.rule-body strong { color: var(--text); font-weight: 700; }
+.btn-main {
+  background: var(--gold); color: #1a1200; border: none;
+  border-radius: 999px; padding: 15px 52px;
+  font-size: 17px; font-weight: 900; font-family: inherit;
+  cursor: pointer; transition: filter .15s, transform .12s;
+}
+.btn-main:hover { filter: brightness(1.1); transform: translateY(-2px); }
+.btn-main:active { transform: scale(.97); }
+
+/* ── GAME LAYOUT ── */
+.game-table {
+  width: 100%; background: var(--felt);
+  border-radius: 20px; border: 2px solid var(--border);
+  padding: 16px; display: flex; flex-direction: column; gap: 14px;
+  min-height: 540px;
+}
+
+/* ── SCORE BAR ── */
+.score-bar {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.player-info {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.p-name { font-size: 11px; font-weight: 700; color: var(--text2); letter-spacing: .06em; }
+.p-cards {
+  font-size: 22px; font-weight: 900; line-height: 1;
+}
+.p-cards.you { color: var(--blue); }
+.p-cards.ai { color: var(--red); }
+.turn-badge {
+  font-size: 12px; font-weight: 800; padding: 5px 14px;
+  border-radius: 999px; border: 1.5px solid;
+  transition: all .3s;
+}
+.turn-badge.your-turn { background: rgba(74,140,217,.2); color: var(--blue); border-color: var(--blue); }
+.turn-badge.ai-turn   { background: rgba(224,80,64,.2);  color: var(--red);  border-color: var(--red);  }
+
+/* ── AI HAND ── */
+.ai-hand {
+  display: flex; justify-content: center; gap: 6px; flex-wrap: wrap;
+  min-height: 64px; padding: 4px;
+}
+.card-back {
+  width: 44px; height: 62px; border-radius: 8px;
+  background: repeating-linear-gradient(45deg, #1a3a28 0 4px, #163020 4px 8px);
+  border: 2px solid var(--border);
+  transition: transform .15s;
+}
+
+/* ── CENTER AREA ── */
+.center-area {
+  display: flex; align-items: center; justify-content: center; gap: 20px;
+}
+.deck-pile {
+  width: 64px; height: 90px; border-radius: 12px;
+  background: repeating-linear-gradient(45deg, #1a3a28 0 5px, #163020 5px 10px);
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: transform .12s;
+  position: relative;
+}
+.deck-pile:hover { transform: scale(1.06); }
+.deck-pile .deck-count {
+  font-size: 20px; font-weight: 900; color: var(--gold);
+}
+.deck-label {
+  position: absolute; bottom: -20px; left: 0; right: 0;
+  font-size: 10px; font-weight: 700; color: var(--text2); text-align: center;
+}
+
+/* ── PLAYED CARD ── */
+.played-area {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.played-label { font-size: 11px; color: var(--text2); font-weight: 700; }
+
+/* ── CARDS ── */
+.card {
+  width: 64px; height: 90px; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 2.5px solid rgba(255,255,255,.25);
+  cursor: pointer; transition: transform .12s, box-shadow .12s;
+  position: relative; overflow: hidden;
+}
+.card::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,.15) 0%, transparent 100%);
+  pointer-events: none;
+}
+.card:hover:not(.disabled):not(.unplayable) { transform: translateY(-10px) scale(1.05); box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+.card.selected { transform: translateY(-14px) scale(1.06); box-shadow: 0 0 0 3px var(--gold), 0 10px 28px rgba(0,0,0,.6); }
+.card.unplayable { opacity: 0.45; cursor: not-allowed; }
+.card.disabled { cursor: default; }
+.card.played-card { width: 72px; height: 100px; cursor: default; }
+.card.played-card:hover { transform: none; }
+.card.played-card::before {
+  content: ''; position: absolute; inset: 0;
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.3);
+}
+
+/* fraction inside card */
+.card-frac {
+  display: flex; flex-direction: column; align-items: center; line-height: 1; z-index: 2;
+}
+.card-frac .cfn { font-size: 22px; font-weight: 900; line-height: 1; }
+.card-frac .cfb { height: 2px; width: 26px; background: rgba(255,255,255,.8); margin: 3px 0; border-radius: 1px; }
+.card-frac .cfd { font-size: 22px; font-weight: 900; line-height: 1; }
+.card-frac.big .cfn { font-size: 26px; }
+.card-frac.big .cfb { width: 30px; }
+.card-frac.big .cfd { font-size: 26px; }
+
+/* special card */
+.card-special { font-size: 28px; z-index: 2; }
+.card-special-label {
+  position: absolute; bottom: 5px; font-size: 9px; font-weight: 800;
+  color: rgba(255,255,255,.8); z-index: 2;
+}
+
+/* card colors */
+.cc-red  { background: var(--red); }
+.cc-blue { background: var(--blue); }
+.cc-grn  { background: var(--grn); }
+.cc-pur  { background: var(--pur); }
+.cc-org  { background: var(--org); }
+.cc-gold { background: var(--gold); }
+
+/* ── PLAYER HAND ── */
+.your-hand {
+  display: flex; justify-content: center; gap: 6px;
+  flex-wrap: wrap; min-height: 100px; padding: 4px;
+}
+.hand-label { font-size: 11px; color: var(--text2); font-weight: 700; text-align: center; }
+
+/* ── ACTION BTN ── */
+.action-area { display: flex; gap: 10px; justify-content: center; }
+.btn-play {
+  background: var(--gold); color: #1a1200; border: none;
+  border-radius: 999px; padding: 12px 36px;
+  font-size: 15px; font-weight: 900; font-family: inherit;
+  cursor: pointer; transition: filter .15s;
+}
+.btn-play:hover { filter: brightness(1.1); }
+.btn-play:disabled { background: rgba(255,255,255,.1); color: var(--text3); cursor: not-allowed; }
+.btn-draw {
+  background: rgba(255,255,255,.08); color: var(--text2);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 999px; padding: 12px 24px;
+  font-size: 14px; font-weight: 800; font-family: inherit;
+  cursor: pointer; transition: background .15s;
+}
+.btn-draw:hover { background: rgba(255,255,255,.14); }
+.btn-draw:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── MSG ── */
+.msg-strip {
+  background: rgba(0,0,0,.3); border-radius: 10px;
+  padding: 8px 14px; font-size: 13px; font-weight: 700;
+  color: var(--text); text-align: center; min-height: 36px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.msg-strip .hi  { color: var(--gold); }
+.msg-strip .good { color: var(--grn); }
+.msg-strip .bad  { color: var(--red); }
+
+/* ── MATH HINT ── */
+.math-hint {
+  background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px; padding: 8px 14px;
+  font-size: 12px; color: var(--text2); line-height: 1.7; text-align: center;
+}
+.math-hint strong { color: var(--gold); }
+
+/* ── OVERLAY ── */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(5,10,15,.82);
+  align-items: center; justify-content: center; z-index: 50;
+}
+.overlay.show { display: flex; }
+.ov-box {
+  background: #1a2e20; border: 1px solid var(--border);
+  border-radius: 22px; padding: 30px 34px;
+  max-width: 380px; width: 90%; text-align: center;
+  animation: popIn .22s ease;
+}
+@keyframes popIn { from { transform: scale(.88); opacity:0; } to { transform: scale(1); opacity:1; } }
+.ov-icon { font-size: 52px; margin-bottom: 10px; }
+.ov-title { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+.ov-sub { font-size: 13px; color: var(--text2); line-height: 1.7; font-weight: 700; margin-bottom: 18px; }
+.ov-stats {
+  background: rgba(0,0,0,.3); border-radius: 10px;
+  padding: 12px 16px; margin-bottom: 18px;
+  font-size: 13px; text-align: left;
+}
+.ov-stats .sr { display: flex; justify-content: space-between; padding: 3px 0; }
+.ov-stats .sk { color: var(--text2); font-weight: 700; }
+.ov-stats .sv { font-weight: 800; color: var(--gold); }
+.ov-btn {
+  background: var(--gold); color: #1a1200; border: none;
+  border-radius: 999px; padding: 12px 36px;
+  font-size: 15px; font-weight: 900; font-family: inherit;
+  cursor: pointer; transition: filter .15s;
+}
+.ov-btn:hover { filter: brightness(1.1); }
+
+/* ── AI THINKING ── */
+.ai-thinking {
+  display: none; gap: 5px; align-items: center;
+  font-size: 12px; color: var(--text2); font-weight: 700;
+}
+.ai-thinking.show { display: flex; }
+.ai-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--red); animation: dotPulse 1s ease-in-out infinite;
+}
+.ai-dot:nth-child(2) { animation-delay: .2s; }
+.ai-dot:nth-child(3) { animation-delay: .4s; }
+@keyframes dotPulse { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+@keyframes dealIn {
+  from { transform: translateY(-40px) scale(.8); opacity:0; }
+  to   { transform: translateY(0) scale(1); opacity:1; }
+}
+.deal-anim { animation: dealIn .25s ease; }
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<div class="screen active" id="scr-title">
+  <div class="title-cards">
+    <div class="title-card-preview cc-blue" style="animation-delay:.0s;animation-direction:alternate">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <span style="font-size:18px;font-weight:900">3</span>
+        <span style="width:20px;height:2px;background:rgba(255,255,255,.8);border-radius:1px"></span>
+        <span style="font-size:18px;font-weight:900">4</span>
+      </div>
+    </div>
+    <div class="title-card-preview cc-red" style="animation-delay:.3s;transform:rotate(8deg)">
+      <span style="font-size:26px">↕</span>
+    </div>
+    <div class="title-card-preview cc-grn" style="animation-delay:.6s">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <span style="font-size:18px;font-weight:900">1</span>
+        <span style="width:20px;height:2px;background:rgba(255,255,255,.8);border-radius:1px"></span>
+        <span style="font-size:18px;font-weight:900">2</span>
+      </div>
+    </div>
+    <div class="title-card-preview cc-pur" style="animation-delay:.9s;transform:rotate(-5deg)">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <span style="font-size:18px;font-weight:900">5</span>
+        <span style="width:20px;height:2px;background:rgba(255,255,255,.8);border-radius:1px"></span>
+        <span style="font-size:18px;font-weight:900">6</span>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="game-title">ぶんすう<span>UNO</span></div>
+    <div style="text-align:center;font-size:13px;color:var(--text2);font-weight:700;margin-top:4px;">分数の大小くらべカードゲーム</div>
+  </div>
+  <div class="title-desc">
+    手札をすべて出しきったら勝ち！<br>
+    <strong>場のカードより大きい分数</strong>か<br>
+    <strong>分子が同じカード</strong>を出せるよ。
+  </div>
+  <div class="title-rules">
+    <div class="rule-row"><span class="rule-icon">📤</span><div class="rule-body"><strong>出せるカード：</strong>場より大きい分数 or 分子が一致</div></div>
+    <div class="rule-row"><span class="rule-icon">↕️</span><div class="rule-body"><strong>リバースカード：</strong>手札の分数の分子と分母がひっくり返る！</div></div>
+    <div class="rule-row"><span class="rule-icon">🃏</span><div class="rule-body"><strong>引けない時：</strong>山札から1枚引く</div></div>
+    <div class="rule-row"><span class="rule-icon">🏆</span><div class="rule-body"><strong>勝利条件：</strong>手札を全部出しきった方が勝ち！</div></div>
+  </div>
+  <button class="btn-main" onclick="initGame()">ゲームスタート ▶</button>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="scr-game">
+  <div class="game-table">
+
+    <!-- Score bar -->
+    <div class="score-bar">
+      <div class="player-info">
+        <span class="p-name">AI</span>
+        <span class="p-cards ai" id="ai-count">7枚</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <span class="turn-badge your-turn" id="turn-badge">あなたのターン</span>
+        <div class="ai-thinking" id="ai-thinking">
+          <div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div>
+          <span>AIが考え中…</span>
+        </div>
+      </div>
+      <div class="player-info">
+        <span class="p-name">あなた</span>
+        <span class="p-cards you" id="your-count">7枚</span>
+      </div>
+    </div>
+
+    <!-- AI hand -->
+    <div>
+      <div class="hand-label" style="margin-bottom:4px">AI の手札</div>
+      <div class="ai-hand" id="ai-hand"></div>
+    </div>
+
+    <!-- Center -->
+    <div class="center-area">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div class="deck-pile" id="deck-pile" onclick="drawCard()">
+          <span class="deck-count" id="deck-count">40</span>
+          <span class="deck-label">山札</span>
+        </div>
+      </div>
+      <div class="played-area">
+        <div class="played-label">場のカード</div>
+        <div id="played-card-area"></div>
+      </div>
+    </div>
+
+    <!-- Math hint -->
+    <div class="math-hint" id="math-hint"></div>
+
+    <!-- Message -->
+    <div class="msg-strip" id="msg-strip">カードを選んで「出す」を押してね！</div>
+
+    <!-- Your hand -->
+    <div>
+      <div class="hand-label" style="margin-bottom:4px">あなたの手札</div>
+      <div class="your-hand" id="your-hand"></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="action-area">
+      <button class="btn-draw" id="btn-draw" onclick="drawCard()">山札から引く 🃏</button>
+      <button class="btn-play" id="btn-play" onclick="playSelected()" disabled>出す ▶</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div class="overlay" id="ov-end">
+  <div class="ov-box">
+    <div class="ov-icon" id="ov-icon">🏆</div>
+    <div class="ov-title" id="ov-title">あなたの勝ち！</div>
+    <div class="ov-sub" id="ov-sub"></div>
+    <div class="ov-stats" id="ov-stats"></div>
+    <button class="ov-btn" onclick="initGame()">もう一度 ↩</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// CARD DEFINITIONS
+// ═══════════════════════════════════════
+const COLORS_CSS = ['cc-red','cc-blue','cc-grn','cc-pur','cc-org'];
+const COLOR_NAMES = ['赤','青','緑','紫','橙'];
+
+function makeDeck() {
+  // 固定デッキ — 分母2/3/4/6/8のみ（小4〜5年の学習範囲）
+  const FRACS = [
+    {n:1,d:2},{n:1,d:3},{n:2,d:3},
+    {n:1,d:4},{n:3,d:4},
+    {n:1,d:6},{n:2,d:6},{n:4,d:6},{n:5,d:6},
+    {n:1,d:8},{n:3,d:8},{n:5,d:8},{n:7,d:8},
+  ];
+  const deck = [];
+  let id = 0;
+  // 各分数を5色×1枚ずつ（1/2だけ頻出なので2セット）
+  FRACS.forEach(f => {
+    const copies = (f.n===1&&f.d===2) ? 2 : 1;
+    for(let c=0;c<copies;c++){
+      [0,1,2,3,4].forEach(ci => {
+        deck.push({ id:id++, type:'frac', n:f.n, d:f.d, color:ci, val:f.n/f.d });
+      });
+    }
+  });
+  // リバース4枚
+  [0,1,2,3].forEach(ci => {
+    deck.push({ id:id++, type:'reverse', color:ci, n:0, d:0, val:-1 });
+  });
+  return shuffle(deck);
+}
+
+function shuffle(arr) {
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function gcd(a,b){ return b===0?a:gcd(b,a%b); }
+function simplifyFrac(n,d){ const g=gcd(n,d); return {n:n/g,d:d/g}; }
+function fracVal(n,d){ return n/d; }
+function fracStr(n,d){ return `${n}/${d}`; }
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let deck=[], yourHand=[], aiHand=[], discardPile=[];
+let topCard=null;
+let yourTurn=true;
+let selectedIdx=-1;
+let topReversed=false; // リバース効果: 場のカードのn/dだけ入れ替わる
+let turnCount=0, youDrawCount=0, aiDrawCount=0;
+let gameOver=false;
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+function initGame() {
+  document.getElementById('ov-end').classList.remove('show');
+  document.getElementById('scr-title').classList.remove('active');
+  document.getElementById('scr-game').classList.add('active');
+
+  deck = makeDeck();
+  yourHand=[]; aiHand=[]; discardPile=[];
+  yourTurn=true; selectedIdx=-1; topReversed=false;
+  turnCount=0; youDrawCount=0; aiDrawCount=0; gameOver=false;
+
+  // Deal 7 each
+  for(let i=0;i<7;i++){ yourHand.push(deck.pop()); aiHand.push(deck.pop()); }
+
+  // First card (must be frac)
+  let first;
+  do { first=deck.pop(); } while(first.type==='reverse');
+  topCard=first; discardPile.push(first);
+
+  render();
+  setMsg('カードを選んで「出す」を押してね！','');
+  updateMathHint();
+}
+
+// ═══════════════════════════════════════
+// CARD LOGIC
+// ═══════════════════════════════════════
+// 場のカードの「有効値」— リバース中は場カードのn/dが入れ替わって比較基準になる
+function effectiveTop() {
+  if(!topCard || topCard.type==='reverse') return null;
+  if(topReversed) return { n:topCard.d, d:topCard.n, val:topCard.d/topCard.n };
+  return { n:topCard.n, d:topCard.d, val:topCard.val };
+}
+
+// 手札カードはそのまま（リバースで手札は変わらない）
+function effectiveCard(card) {
+  return card;
+}
+
+function canPlay(card, top) {
+  if(card.type==='reverse') return true;
+  const et = effectiveTop();
+  if(!et) return true; // 場が空 or リバースカード直後
+  // 分子が一致 or 場より大きい
+  return card.n === et.n || card.val > et.val;
+}
+
+function playableCards(hand) {
+  return hand.map((c,i)=>({c,i})).filter(({c})=>canPlay(c,topCard));
+}
+
+// ═══════════════════════════════════════
+// PLAYER ACTIONS
+// ═══════════════════════════════════════
+function selectCard(idx) {
+  if(!yourTurn||gameOver) return;
+  if(selectedIdx===idx){ selectedIdx=-1; }
+  else { selectedIdx=idx; }
+  renderYourHand();
+  document.getElementById('btn-play').disabled = selectedIdx===-1 || !canPlay(yourHand[selectedIdx],topCard);
+  if(selectedIdx>=0 && yourHand[selectedIdx]) updatePlayHint(yourHand[selectedIdx]);
+}
+
+function playSelected() {
+  if(selectedIdx===-1||gameOver||!yourTurn) return;
+  const card = yourHand[selectedIdx];
+  if(!canPlay(card,topCard)){ setMsg('そのカードは出せないよ！','bad'); return; }
+
+  yourHand.splice(selectedIdx,1);
+  selectedIdx=-1;
+  applyCard(card,'you');
+}
+
+function drawCard() {
+  if(!yourTurn||gameOver) return;
+  if(deck.length===0) reshuffleDeck();
+  if(deck.length===0){ setMsg('山札がなくなった！','bad'); return; }
+  const c = deck.pop();
+  yourHand.push(c);
+  youDrawCount++;
+  setMsg(`「${cardLabel(c)}」を引いた！`, 'hi');
+  turnCount++;
+  yourTurn=false;
+  render();
+  document.getElementById('btn-play').disabled=true;
+  setTimeout(aiTurn,1000);
+}
+
+function applyCard(card, who) {
+  discardPile.push(card);
+  topCard=card;
+  turnCount++;
+
+  if(card.type==='reverse'){
+    topReversed=!topReversed;
+    const et=effectiveTop();
+    const newTop = et ? `${et.n}/${et.d}` : '?';
+    setMsg(`↕ リバース！場の基準が変わった！今は <strong>${newTop}</strong> より大きいカードを出してね`,'hi');
+  } else {
+    setMsg(who==='you'
+      ? `「${fracStr(card.n,card.d)}」を出した！`
+      : `AIが「${fracStr(card.n,card.d)}」を出した！`, who==='you'?'good':'bad');
+  }
+
+  updateMathHint();
+
+  if(who==='you'){
+    if(yourHand.length===0){ setTimeout(()=>endGame('you'),500); return; }
+    yourTurn=false; render();
+    setTimeout(aiTurn,1200);
+  } else {
+    if(aiHand.length===0){ setTimeout(()=>endGame('ai'),500); return; }
+    yourTurn=true; render();
+  }
+}
+
+// ═══════════════════════════════════════
+// AI TURN
+// ═══════════════════════════════════════
+function aiTurn() {
+  if(gameOver) return;
+  document.getElementById('ai-thinking').classList.add('show');
+  document.getElementById('turn-badge').className='turn-badge ai-turn';
+  document.getElementById('turn-badge').textContent='AIのターン';
+
+  setTimeout(()=>{
+    document.getElementById('ai-thinking').classList.remove('show');
+    const playable = playableCards(aiHand);
+    if(playable.length>0){
+      let chosen;
+      const revs = playable.filter(({c})=>c.type==='reverse');
+      const fracs = playable.filter(({c})=>c.type==='frac');
+
+      // リバースは手札が多い（5枚以上）か、プレイヤーが残り2枚以下のときだけ使う
+      if(revs.length>0 && (aiHand.length>=5 || yourHand.length<=2)){
+        chosen = revs[0];
+      } else if(fracs.length>0){
+        // 出せる中で一番小さいカードを優先（大きいカードを温存）
+        chosen = fracs.reduce((best,cur)=>
+          effectiveCard(cur.c).val < effectiveCard(best.c).val ? cur : best
+        );
+      } else {
+        chosen = revs[0];
+      }
+      aiHand.splice(chosen.i,1);
+      applyCard(chosen.c,'ai');
+    } else {
+      if(deck.length===0) reshuffleDeck();
+      if(deck.length>0){
+        aiHand.push(deck.pop());
+        aiDrawCount++;
+        setMsg('AIは山札から引いた…','');
+      }
+      yourTurn=true;
+      render();
+    }
+  }, 900);
+}
+
+// ═══════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════
+function reshuffleDeck() {
+  if(discardPile.length<=1) return;
+  const top=discardPile.pop();
+  deck=shuffle(discardPile); discardPile=[top];
+  setMsg('山札を補充した！','hi');
+}
+
+function cardLabel(card) {
+  if(card.type==='reverse') return 'リバース';
+  const ec=effectiveCard(card);
+  return fracStr(ec.n,ec.d);
+}
+
+function updateMathHint() {
+  const et = effectiveTop();
+  if(!et){ document.getElementById('math-hint').innerHTML=''; return; }
+  const pct=Math.round(et.val*100);
+  const revNote = topReversed ? `（リバース中: 元は${fracStr(topCard.n,topCard.d)}）` : '';
+  document.getElementById('math-hint').innerHTML =
+    `場の基準: <strong>${fracStr(et.n,et.d)}</strong> ≈ ${pct}% ${revNote}<br>これより<strong>大きい分数</strong>か<strong>分子が${et.n}のカード</strong>が出せるよ`;
+}
+
+function updatePlayHint(card) {
+  if(!card||!topCard) return;
+  const et = effectiveTop();
+  if(card.type==='reverse'){
+    const nextTop = topReversed
+      ? `${topCard.n}/${topCard.d}（元に戻る）`
+      : `${topCard.d}/${topCard.n}（ひっくり返る）`;
+    setMsg(`リバース — 場の基準が ${nextTop} に変わる！`,'hi'); return;
+  }
+  if(!et){ setMsg('出せるよ！','good'); return; }
+  const reason = card.n===et.n
+    ? `分子が同じ（${card.n}）だから出せる！`
+    : card.val>et.val
+      ? `${fracStr(card.n,card.d)} > ${fracStr(et.n,et.d)} だから出せる！`
+      : `このカードは出せないよ（${fracStr(card.n,card.d)} ≤ ${fracStr(et.n,et.d)}）`;
+  setMsg(reason, canPlay(card,topCard)?'good':'bad');
+}
+
+// ═══════════════════════════════════════
+// GAME END
+// ═══════════════════════════════════════
+function endGame(winner) {
+  gameOver=true;
+  render();
+  const won = winner==='you';
+  document.getElementById('ov-icon').textContent   = won?'🏆':'😢';
+  document.getElementById('ov-title').textContent  = won?'あなたの勝ち！':'AIの勝ち…';
+  document.getElementById('ov-sub').textContent    = won
+    ? '分数の大小が完璧にわかってる！すごい！'
+    : 'もう一回！分数の大小を確認してみよう。';
+  document.getElementById('ov-stats').innerHTML = `
+    <div class="sr"><span class="sk">総ターン数</span><span class="sv">${turnCount}回</span></div>
+    <div class="sr"><span class="sk">あなたが引いた枚数</span><span class="sv">${youDrawCount}枚</span></div>
+    <div class="sr"><span class="sk">AIが引いた枚数</span><span class="sv">${aiDrawCount}枚</span></div>
+  `;
+  document.getElementById('ov-end').classList.add('show');
+}
+
+function setMsg(txt, cls) {
+  const el=document.getElementById('msg-strip');
+  el.innerHTML = txt
+    .replace(/<hi>/g,'<span class="hi">').replace(/<\/hi>/g,'</span>')
+    .replace(/<good>/g,'<span class="good">').replace(/<\/good>/g,'</span>')
+    .replace(/<bad>/g,'<span class="bad">').replace(/<\/bad>/g,'</span>');
+  if(cls==='hi')   el.style.color='var(--gold)';
+  else if(cls==='good') el.style.color='var(--grn)';
+  else if(cls==='bad')  el.style.color='var(--red)';
+  else                  el.style.color='var(--text)';
+}
+
+// ═══════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════
+function buildCardEl(card, opts={}) {
+  const { selectable=false, isSelected=false, isBack=false } = opts;
+  if(isBack){
+    const el=document.createElement('div'); el.className='card-back deal-anim'; return el;
+  }
+  const ec=effectiveCard(card);
+  const el=document.createElement('div');
+  el.className='card '+COLORS_CSS[card.color];
+  if(isSelected) el.classList.add('selected');
+  if(opts.played) el.classList.add('played-card');
+
+  const playable=canPlay(card,topCard);
+  if(selectable&&!playable) el.classList.add('unplayable');
+  if(!selectable) el.classList.add('disabled');
+
+  if(card.type==='reverse'){
+    const sp=document.createElement('div'); sp.className='card-special'; sp.textContent='↕';
+    const lb=document.createElement('div'); lb.className='card-special-label'; lb.textContent='REVERSE';
+    el.append(sp,lb);
+  } else {
+    const fc=document.createElement('div');
+    fc.className='card-frac'+(opts.played?' big':'');
+    const fn=document.createElement('div'); fn.className='cfn'; fn.textContent=card.n;
+    const fb=document.createElement('div'); fb.className='cfb';
+    const fd=document.createElement('div'); fd.className='cfd'; fd.textContent=ec.d;
+    fc.append(fn,fb,fd); el.appendChild(fc);
+  }
+  return el;
+}
+
+function render() {
+  // Counts
+  document.getElementById('ai-count').textContent=aiHand.length+'枚';
+  document.getElementById('your-count').textContent=yourHand.length+'枚';
+  document.getElementById('deck-count').textContent=deck.length;
+
+  // Turn badge
+  if(!gameOver){
+    document.getElementById('turn-badge').className='turn-badge '+(yourTurn?'your-turn':'ai-turn');
+    document.getElementById('turn-badge').textContent=yourTurn?'あなたのターン':'AIのターン';
+  }
+
+  // AI hand (backs)
+  const aiEl=document.getElementById('ai-hand');
+  aiEl.innerHTML='';
+  aiHand.forEach(()=>{ aiEl.appendChild(buildCardEl(null,{isBack:true})); });
+
+  // Played card
+  const playedEl=document.getElementById('played-card-area');
+  playedEl.innerHTML='';
+  if(topCard) playedEl.appendChild(buildCardEl(topCard,{played:true}));
+
+  // Your hand
+  renderYourHand();
+
+  // Buttons
+  document.getElementById('btn-draw').disabled=!yourTurn||gameOver;
+  document.getElementById('btn-play').disabled=selectedIdx===-1||!yourTurn||gameOver||
+    (selectedIdx>=0&&yourHand[selectedIdx]&&!canPlay(yourHand[selectedIdx],topCard));
+}
+
+function renderYourHand() {
+  const el=document.getElementById('your-hand');
+  el.innerHTML='';
+  yourHand.forEach((card,i)=>{
+    const c=buildCardEl(card,{selectable:true,isSelected:i===selectedIdx});
+    c.onclick=()=>selectCard(i);
+    el.appendChild(c);
+  });
+}
+</script>
+</body>
+</html>
