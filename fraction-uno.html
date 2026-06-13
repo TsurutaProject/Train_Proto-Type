@@ -466,7 +466,7 @@ let deck=[], yourHand=[], aiHand=[], discardPile=[];
 let topCard=null;
 let yourTurn=true;
 let selectedIdx=-1;
-let topReversed=false; // リバース効果: 場のカードのn/dだけ入れ替わる
+let reversed=false; // リバース: 全員の手札の分子と分母がひっくり返る
 let turnCount=0, youDrawCount=0, aiDrawCount=0;
 let gameOver=false;
 
@@ -480,7 +480,7 @@ function initGame() {
 
   deck = makeDeck();
   yourHand=[]; aiHand=[]; discardPile=[];
-  yourTurn=true; selectedIdx=-1; topReversed=false;
+  yourTurn=true; selectedIdx=-1; reversed=false;
   turnCount=0; youDrawCount=0; aiDrawCount=0; gameOver=false;
 
   // Deal 7 each
@@ -499,24 +499,19 @@ function initGame() {
 // ═══════════════════════════════════════
 // CARD LOGIC
 // ═══════════════════════════════════════
-// 場のカードの「有効値」— リバース中は場カードのn/dが入れ替わって比較基準になる
-function effectiveTop() {
-  if(!topCard || topCard.type==='reverse') return null;
-  if(topReversed) return { n:topCard.d, d:topCard.n, val:topCard.d/topCard.n };
-  return { n:topCard.n, d:topCard.d, val:topCard.val };
-}
-
-// 手札カードはそのまま（リバースで手札は変わらない）
+// 手札カードの実効値: reversed中は分子と分母が入れ替わる
 function effectiveCard(card) {
+  if(card.type==='reverse') return card;
+  if(reversed) return { ...card, n:card.d, d:card.n, val:card.d/card.n };
   return card;
 }
 
 function canPlay(card, top) {
   if(card.type==='reverse') return true;
-  const et = effectiveTop();
-  if(!et) return true; // 場が空 or リバースカード直後
-  // 分子が一致 or 場より大きい
-  return card.n === et.n || card.val > et.val;
+  const ec = effectiveCard(card);
+  const et = effectiveCard(top);
+  if(et.type==='reverse') return true;
+  return ec.n === et.n || ec.val > et.val;
 }
 
 function playableCards(hand) {
@@ -566,14 +561,13 @@ function applyCard(card, who) {
   turnCount++;
 
   if(card.type==='reverse'){
-    topReversed=!topReversed;
-    const et=effectiveTop();
-    const newTop = et ? `${et.n}/${et.d}` : '?';
-    setMsg(`↕ リバース！場の基準が変わった！今は <strong>${newTop}</strong> より大きいカードを出してね`,'hi');
+    reversed=!reversed;
+    setMsg(`↕ リバース！みんなの手札の分子と分母がひっくり返った！`,'hi');
   } else {
+    const ec=effectiveCard(card);
     setMsg(who==='you'
-      ? `「${fracStr(card.n,card.d)}」を出した！`
-      : `AIが「${fracStr(card.n,card.d)}」を出した！`, who==='you'?'good':'bad');
+      ? `「${fracStr(ec.n,ec.d)}」を出した！`
+      : `AIが「${fracStr(ec.n,ec.d)}」を出した！`, who==='you'?'good':'bad');
   }
 
   updateMathHint();
@@ -601,21 +595,7 @@ function aiTurn() {
     document.getElementById('ai-thinking').classList.remove('show');
     const playable = playableCards(aiHand);
     if(playable.length>0){
-      let chosen;
-      const revs = playable.filter(({c})=>c.type==='reverse');
-      const fracs = playable.filter(({c})=>c.type==='frac');
-
-      // リバースは手札が多い（5枚以上）か、プレイヤーが残り2枚以下のときだけ使う
-      if(revs.length>0 && (aiHand.length>=5 || yourHand.length<=2)){
-        chosen = revs[0];
-      } else if(fracs.length>0){
-        // 出せる中で一番小さいカードを優先（大きいカードを温存）
-        chosen = fracs.reduce((best,cur)=>
-          effectiveCard(cur.c).val < effectiveCard(best.c).val ? cur : best
-        );
-      } else {
-        chosen = revs[0];
-      }
+      const chosen = playable[0];
       aiHand.splice(chosen.i,1);
       applyCard(chosen.c,'ai');
     } else {
@@ -648,29 +628,25 @@ function cardLabel(card) {
 }
 
 function updateMathHint() {
-  const et = effectiveTop();
-  if(!et){ document.getElementById('math-hint').innerHTML=''; return; }
+  if(!topCard||topCard.type==='reverse'){ document.getElementById('math-hint').innerHTML=''; return; }
+  const et=effectiveCard(topCard);
   const pct=Math.round(et.val*100);
-  const revNote = topReversed ? `（リバース中: 元は${fracStr(topCard.n,topCard.d)}）` : '';
+  const revNote = reversed ? '（リバース中 — 手札の分子と分母が逆になってるよ）' : '';
   document.getElementById('math-hint').innerHTML =
-    `場の基準: <strong>${fracStr(et.n,et.d)}</strong> ≈ ${pct}% ${revNote}<br>これより<strong>大きい分数</strong>か<strong>分子が${et.n}のカード</strong>が出せるよ`;
+    `場のカード: <strong>${fracStr(et.n,et.d)}</strong> ≈ ${pct}% ${revNote}<br>これより<strong>大きい分数</strong>か<strong>分子が${et.n}のカード</strong>が出せるよ`;
 }
 
 function updatePlayHint(card) {
   if(!card||!topCard) return;
-  const et = effectiveTop();
+  const ec=effectiveCard(card), et=effectiveCard(topCard);
   if(card.type==='reverse'){
-    const nextTop = topReversed
-      ? `${topCard.n}/${topCard.d}（元に戻る）`
-      : `${topCard.d}/${topCard.n}（ひっくり返る）`;
-    setMsg(`リバース — 場の基準が ${nextTop} に変わる！`,'hi'); return;
+    setMsg(`リバースカード — 出すと全員の手札の分子と分母がひっくり返る！`,'hi'); return;
   }
-  if(!et){ setMsg('出せるよ！','good'); return; }
-  const reason = card.n===et.n
-    ? `分子が同じ（${card.n}）だから出せる！`
-    : card.val>et.val
-      ? `${fracStr(card.n,card.d)} > ${fracStr(et.n,et.d)} だから出せる！`
-      : `このカードは出せないよ（${fracStr(card.n,card.d)} ≤ ${fracStr(et.n,et.d)}）`;
+  const reason = ec.n===et.n
+    ? `分子が同じ（${ec.n}）だから出せる！`
+    : ec.val>et.val
+      ? `${fracStr(ec.n,ec.d)} > ${fracStr(et.n,et.d)} だから出せる！`
+      : `このカードは出せないよ（${fracStr(ec.n,ec.d)} ≤ ${fracStr(et.n,et.d)}）`;
   setMsg(reason, canPlay(card,topCard)?'good':'bad');
 }
 
@@ -731,7 +707,9 @@ function buildCardEl(card, opts={}) {
   } else {
     const fc=document.createElement('div');
     fc.className='card-frac'+(opts.played?' big':'');
-    const fn=document.createElement('div'); fn.className='cfn'; fn.textContent=card.n;
+    const fn=document.createElement('div'); fn.className='cfn';
+    const ec=effectiveCard(card);
+    fn.textContent=ec.n;
     const fb=document.createElement('div'); fb.className='cfb';
     const fd=document.createElement('div'); fd.className='cfd'; fd.textContent=ec.d;
     fc.append(fn,fb,fd); el.appendChild(fc);
