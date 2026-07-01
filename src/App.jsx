@@ -1,5 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import blueTrainCarImage from './assets/train-game/blue-train-car.png'
+import blueTrainLeftImage from './assets/train-game/blue-train-left.png'
+import blueTrainRightImage from './assets/train-game/blue-train-right.png'
+import curvedRailImage from './assets/train-game/curved-rail.png'
+import redStationBuildingImage from './assets/train-game/red-station-building.png'
+import stationBuildingImage from './assets/train-game/station-building.png'
+import straightRailImage from './assets/train-game/straight-rail.png'
+import tunnelEntranceRailLeftImage from './assets/train-game/tunnel-entrance-rail-left.png'
+import tunnelMiddleImage from './assets/train-game/tunnel-middle.png'
+
+const TRAIN_CARS = [
+  { key: 'rear', image: blueTrainLeftImage, offset: -1 },
+  { key: 'middle', image: blueTrainCarImage, offset: 0 },
+  { key: 'front', image: blueTrainRightImage, offset: 1 },
+]
 
 const STAGES = {
   1: {
@@ -10,7 +25,7 @@ const STAGES = {
     height: 5,
     start: { x: 0, y: 2 },
     goal: { x: 7, y: 2 },
-    relayPoints: [],
+    relayGroups: [],
     availableRails: ['slow'],
   },
   2: {
@@ -21,18 +36,25 @@ const STAGES = {
     height: 5,
     start: { x: 0, y: 2 },
     goal: { x: 7, y: 2 },
-    relayPoints: [],
+    relayGroups: [],
     availableRails: ['slow', 'fast'],
   },
   3: {
     title: 'ステージ3',
     description: '中継地点を通るルートを考えよう',
-    targetTime: 6,
+    targetTime: 4,
     width: 8,
     height: 5,
     start: { x: 0, y: 2 },
     goal: { x: 7, y: 2 },
-    relayPoints: [{ x: 4, y: 2 }],
+    relayGroups: [
+      {
+        cells: [
+          { x: 4, y: 2, part: 'entrance-right' },
+          { x: 5, y: 2, part: 'entrance' },
+        ],
+      },
+    ],
     availableRails: ['slow', 'fast'],
   },
 }
@@ -72,46 +94,54 @@ const getDirectionBetween = (from, to) => {
   )?.[0]
 }
 
-const getRailPath = (connections) => {
+const getRailAssetConfig = (connections) => {
   const directions = [...new Set(connections)]
 
   if (directions.length === 0) {
-    return 'M 0 50 L 100 50'
-  }
-
-  if (directions.length === 1) {
-    const endpointPaths = {
-      up: 'M 50 0 L 50 50',
-      right: 'M 100 50 L 50 50',
-      down: 'M 50 100 L 50 50',
-      left: 'M 0 50 L 50 50',
+    return {
+      image: straightRailImage,
+      shape: 'straight',
+      rotation: 90,
     }
-
-    return endpointPaths[directions[0]]
   }
 
-  if (directions.length === 2) {
-    const connectionKey = directions.sort().join('-')
-    const paths = {
-      'left-right': 'M 0 50 L 100 50',
-      'down-up': 'M 50 0 L 50 100',
-      'right-up': 'M 50 0 L 50 28 Q 50 50 72 50 L 100 50',
-      'down-right': 'M 100 50 L 72 50 Q 50 50 50 72 L 50 100',
-      'down-left': 'M 50 100 L 50 72 Q 50 50 28 50 L 0 50',
-      'left-up': 'M 0 50 L 28 50 Q 50 50 50 28 L 50 0',
+  const normalizedDirections =
+    directions.length === 1
+      ? [directions[0], OPPOSITE_DIRECTIONS[directions[0]]]
+      : directions
+  const connectionKey = [...normalizedDirections].sort().join('-')
+  const straightRotations = {
+    'down-up': 0,
+    'left-right': 90,
+  }
+  const curveRotations = {
+    'down-right': 0,
+    'down-left': 90,
+    'left-up': 180,
+    'right-up': 270,
+  }
+
+  if (connectionKey in straightRotations) {
+    return {
+      image: straightRailImage,
+      shape: 'straight',
+      rotation: straightRotations[connectionKey],
     }
-
-    return paths[connectionKey] ?? 'M 0 50 L 100 50'
   }
 
-  const edgePoints = {
-    up: '50 0',
-    right: '100 50',
-    down: '50 100',
-    left: '0 50',
+  if (connectionKey in curveRotations) {
+    return {
+      image: curvedRailImage,
+      shape: 'curve',
+      rotation: curveRotations[connectionKey],
+    }
   }
 
-  return directions.map((direction) => `M 50 50 L ${edgePoints[direction]}`).join(' ')
+  return {
+    image: straightRailImage,
+    shape: 'straight',
+    rotation: 90,
+  }
 }
 
 function RailPiece({
@@ -120,22 +150,35 @@ function RailPiece({
   connections = ['left', 'right'],
   showSpeed = true,
 }) {
-  const path = getRailPath(connections)
+  const railAsset = getRailAssetConfig(connections)
 
   return (
     <span
-      className={`rail-piece rail-piece-${type} ${compact ? 'rail-piece-compact' : ''}`}
+      className={`rail-piece rail-piece-${type} rail-piece-${railAsset.shape} ${compact ? 'rail-piece-compact' : ''}`}
+      style={{ '--rail-rotation': `${railAsset.rotation}deg` }}
       aria-hidden="true"
     >
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-        <path className="rail-sleeper-line" d={path} pathLength="100" />
-        <path className="rail-base-line" d={path} />
-        <path className="rail-metal-line" d={path} />
-        <path className="rail-gap-line" d={path} />
-      </svg>
+      <img className="rail-piece-image" src={railAsset.image} alt="" />
       {showSpeed && (
         <span className="rail-speed-badge">{RAIL_TYPES[type].speed}</span>
       )}
+    </span>
+  )
+}
+
+function SpecialCellAsset({ type, label }) {
+  const images = {
+    start: redStationBuildingImage,
+    goal: stationBuildingImage,
+    'tunnel-entrance': tunnelEntranceRailLeftImage,
+    'tunnel-entrance-right': tunnelEntranceRailLeftImage,
+    'tunnel-middle': tunnelMiddleImage,
+  }
+
+  return (
+    <span className={`special-cell-asset special-cell-asset-${type}`}>
+      <img src={images[type]} alt="" aria-hidden="true" />
+      {label && <span className="special-cell-badge">{label}</span>}
     </span>
   )
 }
@@ -164,6 +207,34 @@ function App() {
 
   const isSamePosition = (a, b) => a.x === b.x && a.y === b.y
 
+  const getRelayCells = () => {
+    if (!currentStage) return []
+
+    return currentStage.relayGroups.flatMap((relayGroup, relayIndex) =>
+      relayGroup.cells.map((cell, cellIndex) => ({
+        ...cell,
+        relayIndex,
+        relayNumber: relayIndex + 1,
+        cellIndex,
+      })),
+    )
+  }
+
+  const getRelayCellAt = (position) => {
+    return getRelayCells().find((relayCell) =>
+      isSamePosition(position, relayCell),
+    )
+  }
+
+  const getRelayTargets = () => {
+    if (!currentStage) return []
+
+    return currentStage.relayGroups.map((relayGroup, index) => ({
+      relayNumber: index + 1,
+      position: relayGroup.cells[relayGroup.cells.length - 1],
+    }))
+  }
+
   const isSpecialCell = (x, y) => {
     if (!currentStage) return false
 
@@ -172,7 +243,7 @@ function App() {
     return (
       isSamePosition(position, currentStage.start) ||
       isSamePosition(position, currentStage.goal) ||
-      currentStage.relayPoints.some((point) => isSamePosition(position, point))
+      Boolean(getRelayCellAt(position))
     )
   }
 
@@ -242,7 +313,7 @@ function App() {
     return (
       isSamePosition(position, currentStage.start) ||
       isSamePosition(position, currentStage.goal) ||
-      currentStage.relayPoints.some((point) => isSamePosition(position, point)) ||
+      Boolean(getRelayCellAt(position)) ||
       Boolean(getRailAt(position.x, position.y))
     )
   }
@@ -253,15 +324,15 @@ function App() {
   }
 
   const getRelayMaskAt = (position) => {
-    return currentStage.relayPoints.reduce((mask, relayPoint, index) => {
-      return isSamePosition(position, relayPoint) ? mask | (1 << index) : mask
+    return getRelayCells().reduce((mask, relayCell, index) => {
+      return isSamePosition(position, relayCell) ? mask | (1 << index) : mask
     }, 0)
   }
 
   const findShortestRoute = (requireRelayPoints = true) => {
     if (!currentStage) return null
 
-    const allRelayMask = (1 << currentStage.relayPoints.length) - 1
+    const allRelayMask = (1 << getRelayCells().length) - 1
     const startMask = getRelayMaskAt(currentStage.start)
     const startKey = `${positionToKey(currentStage.start)}-${startMask}`
     const openStates = [
@@ -355,6 +426,93 @@ function App() {
     return null
   }
 
+  const findRouteToPosition = (targetPosition) => {
+    if (!currentStage) return null
+
+    const startKey = positionToKey(currentStage.start)
+    const openStates = [
+      {
+        key: startKey,
+        position: currentStage.start,
+        steps: 0,
+        time: 0,
+      },
+    ]
+    const distances = new Map([[startKey, { steps: 0, time: 0 }]])
+    const parents = new Map([[startKey, null]])
+    const states = new Map([[startKey, currentStage.start]])
+
+    while (openStates.length > 0) {
+      let bestIndex = 0
+
+      for (let index = 1; index < openStates.length; index += 1) {
+        const candidate = openStates[index]
+        const best = openStates[bestIndex]
+
+        if (
+          candidate.steps < best.steps ||
+          (candidate.steps === best.steps && candidate.time < best.time)
+        ) {
+          bestIndex = index
+        }
+      }
+
+      const current = openStates.splice(bestIndex, 1)[0]
+      const recordedDistance = distances.get(current.key)
+
+      if (
+        recordedDistance.steps !== current.steps ||
+        Math.abs(recordedDistance.time - current.time) > 0.0001
+      ) {
+        continue
+      }
+
+      if (isSamePosition(current.position, targetPosition)) {
+        const positions = []
+        let routeKey = current.key
+
+        while (routeKey) {
+          positions.unshift(states.get(routeKey))
+          routeKey = parents.get(routeKey)
+        }
+
+        return {
+          positions,
+          time: current.time,
+        }
+      }
+
+      getNeighborPositions(current.position).forEach((neighbor) => {
+        if (!canTrainPass(neighbor)) return
+
+        const key = positionToKey(neighbor)
+        const nextDistance = {
+          steps: current.steps + 1,
+          time: current.time + getTravelTimeAt(neighbor),
+        }
+        const previousDistance = distances.get(key)
+        const isBetterRoute =
+          !previousDistance ||
+          nextDistance.steps < previousDistance.steps ||
+          (nextDistance.steps === previousDistance.steps &&
+            nextDistance.time < previousDistance.time)
+
+        if (!isBetterRoute) return
+
+        distances.set(key, nextDistance)
+        parents.set(key, current.key)
+        states.set(key, neighbor)
+        openStates.push({
+          key,
+          position: neighbor,
+          ...nextDistance,
+        })
+      })
+    }
+
+    return null
+  }
+
   const createTrainMotion = (route) => {
     const mapElement = mapRef.current
 
@@ -427,8 +585,9 @@ function App() {
       path: commands.join(' '),
       width: mapRect.width,
       height: mapRect.height,
-      trainWidth: routePoints[0].size * 0.72,
-      trainHeight: routePoints[0].size * 0.42,
+      trainCarWidth: routePoints[0].size * 0.62,
+      trainCarHeight: routePoints[0].size * 0.5,
+      trainCarGap: routePoints[0].size * 0.16,
     }
   }
 
@@ -452,7 +611,7 @@ function App() {
     if (!route) {
       const routeWithoutRelayRequirement = findShortestRoute(false)
       const errorMessage =
-        routeWithoutRelayRequirement && currentStage.relayPoints.length > 0
+        routeWithoutRelayRequirement && getRelayCells().length > 0
           ? '中継地点を通るようにレールをつなげてください。'
           : 'スタートからゴールまでレールがつながっていません。'
       setMessage(errorMessage)
@@ -528,7 +687,7 @@ function App() {
               showSpeed={false}
             />
           )}
-          <span className="special-cell-label">S</span>
+          <SpecialCellAsset type="start" label="S" />
         </span>
       )
     }
@@ -544,12 +703,22 @@ function App() {
               showSpeed={false}
             />
           )}
-          <span className="special-cell-label">G</span>
+          <SpecialCellAsset type="goal" label="G" />
         </span>
       )
     }
 
-    if (currentStage && currentStage.relayPoints.some((point) => isSamePosition(position, point))) {
+    const relayCell = currentStage ? getRelayCellAt(position) : null
+
+    if (relayCell) {
+      const tunnelPart =
+        relayCell.part === 'entrance-right'
+          ? 'tunnel-entrance-right'
+          : relayCell.part === 'middle'
+            ? 'tunnel-middle'
+            : 'tunnel-entrance'
+      const label = relayCell.cellIndex === 0 ? '中' : null
+
       return (
         <span className="special-cell-content">
           {isOnRoute && (
@@ -560,7 +729,7 @@ function App() {
               showSpeed={false}
             />
           )}
-          <span className="special-cell-label relay-label">中</span>
+          <SpecialCellAsset type={tunnelPart} label={label} />
         </span>
       )
     }
@@ -593,6 +762,24 @@ function App() {
   const shortestRouteRailCount =
     shortestRoute?.positions.filter((position) => getRailAt(position.x, position.y))
       .length ?? 0
+  const connectedRelayRoute =
+    currentStage
+      ? getRelayTargets()
+        .map((relayTarget) => ({
+          relayNumber: relayTarget.relayNumber,
+          route: findRouteToPosition(relayTarget.position),
+        }))
+        .find((relayRoute) => relayRoute.route) ?? null
+      : null
+  const visibleRoute = shortestRoute ?? connectedRelayRoute?.route ?? null
+  const visibleRouteRailCount =
+    visibleRoute?.positions.filter((position) => getRailAt(position.x, position.y))
+      .length ?? 0
+  const timePanelStatus = shortestRoute
+    ? 'connected'
+    : connectedRelayRoute
+      ? 'partial'
+      : 'waiting'
 
   return (
     <div className="app">
@@ -692,8 +879,9 @@ function App() {
                 const rail = getRailAt(x, y)
                 const isStart = isSamePosition({ x, y }, currentStage.start)
                 const isGoal = isSamePosition({ x, y }, currentStage.goal)
-                const isRelay = currentStage.relayPoints.some((point) => isSamePosition({ x, y }, point))
-                const isShortestRoute = shortestRoute?.positions.some((position) =>
+                const relayCell = getRelayCellAt({ x, y })
+                const isRelay = Boolean(relayCell)
+                const isShortestRoute = visibleRoute?.positions.some((position) =>
                   isSamePosition({ x, y }, position),
                 )
                 const cellLabel = isStart
@@ -701,7 +889,7 @@ function App() {
                   : isGoal
                     ? 'ゴール'
                     : isRelay
-                      ? '中継地点'
+                      ? `中継地点 ${relayCell.cellIndex + 1}マス目`
                       : rail
                         ? `${RAIL_TYPES[rail.type].label} ${x + 1}列 ${y + 1}行`
                         : `空きマス ${x + 1}列 ${y + 1}行`
@@ -715,7 +903,7 @@ function App() {
                     className={`map-cell ${rail ? `rail-${rail.type}` : ''} ${isStart ? 'start-cell' : ''} ${isGoal ? 'goal-cell' : ''} ${isRelay ? 'relay-cell' : ''} ${isShortestRoute ? 'shortest-route-cell' : ''}`}
                     onClick={() => toggleRail(x, y)}
                   >
-                    {renderCell(x, y, shortestRoute)}
+                    {renderCell(x, y, visibleRoute)}
                   </button>
                 )
               })
@@ -727,6 +915,7 @@ function App() {
                 className="train-motion-layer"
                 viewBox={`0 0 ${trainRun.motion.width} ${trainRun.motion.height}`}
                 preserveAspectRatio="none"
+                overflow="visible"
                 role="img"
                 aria-label="走行中の電車"
               >
@@ -734,54 +923,38 @@ function App() {
                   className="train-motion-guide"
                   d={trainRun.motion.path}
                 />
-                <g className="train-svg-vehicle">
-                  <rect
-                    className="train-svg-cab"
-                    x={-trainRun.motion.trainWidth * 0.42}
-                    y={-trainRun.motion.trainHeight * 0.66}
-                    width={trainRun.motion.trainWidth * 0.68}
-                    height={trainRun.motion.trainHeight * 0.68}
-                    rx={trainRun.motion.trainHeight * 0.14}
-                  />
-                  <path
-                    className="train-svg-front"
-                    d={`
-                      M ${trainRun.motion.trainWidth * 0.2} ${-trainRun.motion.trainHeight * 0.66}
-                      Q ${trainRun.motion.trainWidth * 0.47} ${-trainRun.motion.trainHeight * 0.58}
-                        ${trainRun.motion.trainWidth * 0.48} ${-trainRun.motion.trainHeight * 0.3}
-                      Q ${trainRun.motion.trainWidth * 0.47} ${-trainRun.motion.trainHeight * 0.05}
-                        ${trainRun.motion.trainWidth * 0.2} ${trainRun.motion.trainHeight * 0.02}
-                      Z
-                    `}
-                  />
-                  <rect
-                    className="train-svg-window"
-                    x={-trainRun.motion.trainWidth * 0.29}
-                    y={-trainRun.motion.trainHeight * 0.5}
-                    width={trainRun.motion.trainWidth * 0.18}
-                    height={trainRun.motion.trainHeight * 0.2}
-                    rx="3"
-                  />
-                  <rect
-                    className="train-svg-window"
-                    x={-trainRun.motion.trainWidth * 0.06}
-                    y={-trainRun.motion.trainHeight * 0.5}
-                    width={trainRun.motion.trainWidth * 0.18}
-                    height={trainRun.motion.trainHeight * 0.2}
-                    rx="3"
-                  />
-                  <circle
-                    className="train-svg-wheel"
-                    cx={-trainRun.motion.trainWidth * 0.23}
-                    cy="0"
-                    r={trainRun.motion.trainHeight * 0.12}
-                  />
-                  <circle
-                    className="train-svg-wheel"
-                    cx={trainRun.motion.trainWidth * 0.17}
-                    cy="0"
-                    r={trainRun.motion.trainHeight * 0.12}
-                  />
+                <g className="train-image-vehicle" overflow="visible">
+                  {[-0.5, 0.5].map((offset) => (
+                    <rect
+                      key={offset}
+                      className="train-coupler"
+                      x={
+                        offset *
+                          (trainRun.motion.trainCarWidth + trainRun.motion.trainCarGap) -
+                        trainRun.motion.trainCarGap / 2
+                      }
+                      y={-trainRun.motion.trainCarHeight * 0.1}
+                      width={trainRun.motion.trainCarGap}
+                      height={trainRun.motion.trainCarHeight * 0.2}
+                      rx={trainRun.motion.trainCarGap * 0.25}
+                    />
+                  ))}
+                  {TRAIN_CARS.map((car) => (
+                    <image
+                      key={car.key}
+                      className={`train-image train-image-${car.key}`}
+                      href={car.image}
+                      x={
+                        car.offset *
+                          (trainRun.motion.trainCarWidth + trainRun.motion.trainCarGap) -
+                        trainRun.motion.trainCarWidth / 2
+                      }
+                      y={-trainRun.motion.trainCarHeight / 2}
+                      width={trainRun.motion.trainCarWidth}
+                      height={trainRun.motion.trainCarHeight}
+                      preserveAspectRatio="xMidYMid meet"
+                    />
+                  ))}
                   <animateMotion
                     dur={`${trainRun.duration}ms`}
                     path={trainRun.motion.path}
@@ -793,23 +966,52 @@ function App() {
             )}
           </div>
 
+          <div className={`time-panel time-panel-${timePanelStatus}`} aria-live="polite">
+            <span className="time-panel-label">予想時間</span>
+            <span className="time-panel-scope">
+              {shortestRoute
+                ? 'ゴールまで'
+                : connectedRelayRoute
+                  ? `中継地点${connectedRelayRoute.relayNumber}まで`
+                  : getRelayCells().length > 0
+                    ? '中継地点まで'
+                    : 'ゴールまで'}
+            </span>
+            <strong>
+              {shortestRoute
+                ? `${shortestRoute.time.toFixed(1)}秒`
+                : connectedRelayRoute
+                  ? `${connectedRelayRoute.route.time.toFixed(1)}秒`
+                  : '未接続'}
+            </strong>
+            <small className="time-panel-note">
+              {shortestRoute
+                ? `最短経路 ${shortestRouteRailCount}マス / 目標 ${currentStage.targetTime}秒`
+                : connectedRelayRoute
+                  ? `ここまで ${visibleRouteRailCount}マス。ゴールまでつなげると最終予想時間に変わります。`
+                  : getRelayCells().length > 0
+                    ? 'まずはスタートから中継地点までレールをつなげてください。'
+                    : 'スタートからゴールまでレールをつなげると表示されます。'}
+            </small>
+          </div>
+
           <div className="rail-info">
             <p>S：スタート</p>
             <p>G：ゴール</p>
             <p>中：中継地点</p>
             <p>配置したレール数：{placedRails.length}マス</p>
             <p>
-              最短経路：
-              {shortestRoute ? `${shortestRouteRailCount}マス` : '未接続'}
-            </p>
-            <p>
-              予想時間：
-              {shortestRoute ? `${shortestRoute.time.toFixed(1)}秒` : '未接続'}
+              表示中の経路：
+              {visibleRoute ? `${visibleRouteRailCount}マス` : '未接続'}
             </p>
           </div>
 
           <p className="route-hint">
-            予想時間には、黄色で示した最短経路上のレールだけが含まれます。
+            {shortestRoute
+              ? '予想時間には、黄色で示した最短経路上のレールだけが含まれます。'
+              : connectedRelayRoute
+                ? '黄色の経路は、現在つながっている中継地点までのルートです。'
+                : '黄色の経路が表示されたら、時間もここに表示されます。'}
           </p>
 
           {trainRun && (

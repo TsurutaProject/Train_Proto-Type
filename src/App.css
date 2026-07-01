@@ -322,40 +322,28 @@
   width: 100%;
 }
 
-.rail-piece svg {
+.rail-piece-image {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  overflow: visible;
+  object-fit: contain;
+  pointer-events: none;
+  transform: rotate(var(--rail-rotation, 0deg)) scale(1.08);
+  transform-origin: center;
+  user-select: none;
 }
 
-.rail-piece path {
-  fill: none;
-  stroke-linecap: butt;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
+.rail-piece-fast .rail-piece-image {
+  filter: saturate(1.25) hue-rotate(165deg) brightness(0.95);
 }
 
-.rail-sleeper-line {
-  stroke: var(--tie-color);
-  stroke-width: 15;
-  stroke-dasharray: 2 6;
+.rail-piece-station .rail-piece-image {
+  filter: grayscale(0.55) brightness(1.08);
 }
 
-.rail-base-line {
-  stroke: var(--rail-gap-color, #ffffff);
-  stroke-width: 12;
-}
-
-.rail-metal-line {
-  stroke: var(--rail-color);
-  stroke-width: 10;
-}
-
-.rail-gap-line {
-  stroke: var(--rail-gap-color, #ffffff);
-  stroke-width: 4;
+.rail-piece-curve .rail-piece-image {
+  transform: rotate(var(--rail-rotation, 0deg)) scale(1.16);
 }
 
 .rail-speed-badge {
@@ -399,22 +387,74 @@
   inset: 0;
 }
 
-.special-cell-label {
+.special-cell-asset {
   position: relative;
-  z-index: 1;
-  min-width: 48%;
+  z-index: 2;
+  width: 86%;
   aspect-ratio: 1 / 1;
   display: grid;
   place-items: center;
-  border: 3px solid currentColor;
-  border-radius: 50%;
-  background: rgb(255 255 255 / 90%);
+  filter: drop-shadow(0 3px 2px rgb(0 0 0 / 26%));
+}
+
+.special-cell-asset img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.special-cell-asset-start {
+  width: 96%;
+}
+
+.special-cell-asset-goal {
+  width: 88%;
+}
+
+.special-cell-asset-tunnel-entrance {
+  width: 96%;
+}
+
+.special-cell-asset-tunnel-entrance-right {
+  width: 96%;
+}
+
+.special-cell-asset-tunnel-entrance-right img {
+  transform: scaleX(-1);
+}
+
+.special-cell-asset-tunnel-middle {
+  width: 108%;
+  height: 100%;
+}
+
+.special-cell-asset-tunnel-middle img {
+  object-fit: cover;
+}
+
+.special-cell-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  z-index: 1;
+  min-width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  color: currentColor;
+  background: rgb(255 255 255 / 92%);
+  font-size: 14px;
+  font-weight: 900;
   line-height: 1;
 }
 
-.relay-label {
-  min-width: 56%;
-  font-size: 0.72em;
+.special-cell-asset-tunnel-entrance .special-cell-badge {
+  right: 4px;
+  bottom: 1px;
 }
 
 .map-cell .rail-piece {
@@ -425,7 +465,7 @@
   filter: drop-shadow(0 0 3px rgb(251 192 45 / 80%));
 }
 
-.map-cell .rail-piece svg {
+.map-cell .rail-piece-image {
   inset: calc(var(--grid-gap) / -2);
   width: calc(100% + var(--grid-gap));
   height: calc(100% + var(--grid-gap));
@@ -460,7 +500,7 @@
   border: 2px solid #cfd8dc;
   border-radius: 8px;
   color: #455a64;
-  background: #f8fafb;
+  background: #fff8e1;
   font-size: clamp(20px, 4vw, 36px);
   font-weight: 900;
 }
@@ -522,33 +562,18 @@
   stroke: transparent;
 }
 
-.train-svg-vehicle {
+.train-image-vehicle {
   filter: drop-shadow(0 4px 3px rgb(0 0 0 / 35%));
 }
 
-.train-svg-cab {
-  fill: #1976d2;
-  stroke: #0d47a1;
-  stroke-width: 3;
+.train-coupler {
+  fill: #263238;
+  stroke: #90a4ae;
+  stroke-width: 1;
 }
 
-.train-svg-front {
-  fill: #ffca28;
-  stroke: #0d47a1;
-  stroke-width: 3;
-  stroke-linejoin: round;
-}
-
-.train-svg-window {
-  fill: #bbdefb;
-  stroke: #e3f2fd;
-  stroke-width: 2;
-}
-
-.train-svg-wheel {
-  fill: #78909c;
-  stroke: #263238;
-  stroke-width: 3;
+.train-image {
+  pointer-events: none;
 }
 
 .train-status {
@@ -574,12 +599,113 @@
   font-size: 13px;
 }
 
+.time-panel {
+  width: min(100%, 680px);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "label value"
+    "scope value"
+    "note note";
+  align-items: center;
+  gap: 4px 18px;
+  margin: 18px 0 14px;
+  padding: 18px 22px;
+  border: 4px solid #ffb300;
+  border-radius: 18px;
+  color: #3e2723;
+  background:
+    radial-gradient(circle at top left, rgb(255 236 179 / 85%), transparent 45%),
+    #fff8e1;
+  box-shadow:
+    0 8px 0 #f57f17,
+    0 16px 26px rgb(245 127 23 / 18%);
+  text-align: left;
+}
+
+.time-panel-label {
+  grid-area: label;
+  padding: 7px 12px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #ef6c00;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.time-panel-scope {
+  grid-area: scope;
+  color: #6d4c41;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.time-panel strong {
+  grid-area: value;
+  justify-self: end;
+  color: #bf360c;
+  font-size: clamp(34px, 6vw, 52px);
+  line-height: 1;
+}
+
+.time-panel-note {
+  grid-area: note;
+  margin-top: 6px;
+  color: #5d4037;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.time-panel-partial {
+  border-color: #29b6f6;
+  background:
+    radial-gradient(circle at top left, rgb(179 229 252 / 85%), transparent 45%),
+    #e1f5fe;
+  box-shadow:
+    0 8px 0 #0277bd,
+    0 16px 26px rgb(2 119 189 / 18%);
+}
+
+.time-panel-partial .time-panel-label {
+  background: #0277bd;
+}
+
+.time-panel-partial strong {
+  color: #01579b;
+}
+
+.time-panel-partial .time-panel-scope {
+  color: #01579b;
+}
+
+.time-panel-waiting {
+  border-color: #b0bec5;
+  color: #455a64;
+  background: #f5f8f9;
+  box-shadow:
+    0 8px 0 #78909c,
+    0 16px 26px rgb(69 90 100 / 12%);
+}
+
+.time-panel-waiting .time-panel-label {
+  background: #607d8b;
+}
+
+.time-panel-waiting strong {
+  color: #455a64;
+  font-size: clamp(28px, 5vw, 42px);
+}
+
+.time-panel-waiting .time-panel-scope {
+  color: #546e7a;
+}
+
 .rail-info {
   width: min(100%, 680px);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, auto);
   gap: 6px 18px;
-  margin: 20px auto;
+  margin: 14px auto 20px;
   padding: 14px 18px;
   border: 2px solid #90a4ae;
   border-radius: 12px;
@@ -687,5 +813,19 @@
 
   .rail-info {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .time-panel {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "label"
+      "scope"
+      "value"
+      "note";
+    text-align: center;
+  }
+
+  .time-panel strong {
+    justify-self: center;
   }
 }
