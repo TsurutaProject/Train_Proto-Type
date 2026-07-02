@@ -15,6 +15,7 @@
   border: 3px solid #263238;
   border-radius: 20px;
   box-shadow: 0 18px 50px rgb(38 50 56 / 16%);
+  font-size: 18px;
   text-align: center;
 }
 
@@ -103,7 +104,7 @@
 
 .stage-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 24px;
   margin: 48px 0 24px;
 }
@@ -122,6 +123,34 @@
   background: #e1f5fe;
 }
 
+.stage-list .tutorial-stage-card {
+  border-color: #ffb300;
+  background: linear-gradient(145deg, #fff8e1, #ffffff);
+  box-shadow: 0 8px 20px rgb(255 179 0 / 18%);
+}
+
+.stage-list .tutorial-stage-card span {
+  color: #e65100;
+  font-size: 28px;
+}
+
+.stage-list .completed-stage-card {
+  border-color: #43a047;
+  background: linear-gradient(145deg, #e8f5e9, #ffffff);
+}
+
+.stage-result-mark {
+  display: block;
+  margin-top: 12px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  color: #1b5e20;
+  background: #c8e6c9;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 900;
+}
+
 .stage-list span,
 .stage-list small {
   display: block;
@@ -134,7 +163,7 @@
 }
 
 .stage-list small {
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.5;
 }
 
@@ -179,10 +208,108 @@
   font-weight: 900;
 }
 
+.stage-constraints {
+  width: min(100%, 680px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: -4px 0 20px;
+  padding: 11px 14px;
+  border: 2px solid #7e57c2;
+  border-radius: 14px;
+  color: #4527a0;
+  background: #ede7f6;
+}
+
+.stage-constraints strong,
+.stage-constraints span {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.stage-constraints strong {
+  color: #ffffff;
+  background: #673ab7;
+}
+
+.stage-constraints span {
+  background: rgb(255 255 255 / 78%);
+}
+
+.stage-constraints > span {
+  flex: 1 1 150px;
+  text-align: center;
+}
+
+.tutorial-guide {
+  width: min(100%, 680px);
+  margin: 0 0 20px;
+  padding: 16px 18px;
+  border: 3px solid #ffb300;
+  border-radius: 16px;
+  color: #4e342e;
+  background: linear-gradient(135deg, #fff8e1, #fffde7);
+  box-shadow: 0 7px 0 #f57f17;
+  text-align: left;
+}
+
+.tutorial-guide-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tutorial-guide-heading span {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #ef6c00;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.tutorial-guide-heading h3,
+.tutorial-guide p {
+  margin: 0;
+}
+
+.tutorial-guide-heading h3 {
+  color: #bf360c;
+  font-size: 20px;
+}
+
+.tutorial-guide p {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.tutorial-progress {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.tutorial-progress span {
+  height: 6px;
+  border-radius: 999px;
+  background: #ffe0b2;
+}
+
+.tutorial-progress span.active {
+  background: #f57c00;
+}
+
 .rail-yard {
   width: min(100%, 680px);
-  margin-bottom: 22px;
-  padding: 16px;
+  margin-bottom: 14px;
+  padding: 10px;
   border: 3px solid #8d6e63;
   border-radius: 16px;
   background:
@@ -202,7 +329,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 18px;
-  margin-bottom: 14px;
+  margin-bottom: 7px;
   text-align: left;
 }
 
@@ -213,7 +340,7 @@
 
 .rail-yard-heading h3 {
   color: #4e342e;
-  font-size: 22px;
+  font-size: 17px;
 }
 
 .rail-yard-heading p {
@@ -223,8 +350,8 @@
 }
 
 .clear-rails-button {
-  flex: 0 0 auto;
-  padding: 8px 12px;
+  flex: 1 1 120px;
+  padding: 8px 10px;
   border: 2px solid #795548;
   border-radius: 10px;
   color: #4e342e;
@@ -240,20 +367,22 @@
 
 .rail-selector {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-start;
-  gap: 12px;
+  gap: 7px;
 }
 
 .rail-card {
   position: relative;
-  min-width: 220px;
+  min-width: 0;
+  flex: 1 1 110px;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border: 3px solid #90a4ae;
-  border-radius: 14px;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 2px solid #90a4ae;
+  border-radius: 10px;
   color: #37474f;
   background: #ffffff;
   text-align: left;
@@ -264,6 +393,34 @@
   color: #01579b;
   background: #e1f5fe;
   box-shadow: 0 0 0 3px rgb(2 119 189 / 16%);
+}
+
+.rail-card > strong {
+  font-size: 15px;
+}
+
+.rail-card > small {
+  min-width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #546e7a;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.rail-card.selected > small {
+  background: #0277bd;
+}
+
+.rail-selection-description {
+  margin: 7px 2px 0;
+  color: #5d4037;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: left;
 }
 
 .rail-card-copy {
@@ -388,6 +545,8 @@
 }
 
 .special-cell-asset {
+  --special-asset-rotation: 0deg;
+  --special-asset-flip-x: 1;
   position: relative;
   z-index: 2;
   width: 86%;
@@ -403,6 +562,9 @@
   object-fit: contain;
   pointer-events: none;
   user-select: none;
+  transform:
+    rotate(var(--special-asset-rotation))
+    scaleX(var(--special-asset-flip-x));
 }
 
 .special-cell-asset-start {
@@ -421,17 +583,69 @@
   width: 96%;
 }
 
-.special-cell-asset-tunnel-entrance-right img {
-  transform: scaleX(-1);
+.special-cell-asset-tunnel-entrance-right {
+  --special-asset-flip-x: -1;
+}
+
+.special-cell-asset-vertical {
+  --special-asset-rotation: 90deg;
 }
 
 .special-cell-asset-tunnel-middle {
-  width: 108%;
-  height: 100%;
+  width: 94%;
+  height: 94%;
 }
 
 .special-cell-asset-tunnel-middle img {
-  object-fit: cover;
+  object-fit: contain;
+}
+
+.special-cell-asset-tunnel-middle.special-cell-asset-vertical {
+  width: 94%;
+  height: 94%;
+}
+
+.obstacle-asset {
+  position: relative;
+  z-index: 2;
+  width: 82%;
+  height: 82%;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 3px 2px rgb(0 0 0 / 26%));
+}
+
+.obstacle-asset img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.turnaround-asset {
+  z-index: 2;
+  width: 76%;
+  height: 76%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border: 4px solid #00838f;
+  border-radius: 50%;
+  color: #006064;
+  background: #b2ebf2;
+  filter: drop-shadow(0 3px 2px rgb(0 0 0 / 22%));
+}
+
+.turnaround-asset strong {
+  font-size: clamp(20px, 3vw, 32px);
+  line-height: 0.8;
+}
+
+.turnaround-asset small {
+  margin-top: 3px;
+  font-size: clamp(7px, 1vw, 10px);
+  font-weight: 900;
 }
 
 .special-cell-badge {
@@ -547,6 +761,81 @@
   background: #fff9c4;
 }
 
+.map-cell.obstacle-cell {
+  cursor: not-allowed;
+  border-color: #546e7a;
+  background: #cfd8dc;
+}
+
+.map-cell.turnaround-cell {
+  border-color: #00838f;
+  background: #e0f7fa;
+}
+
+.map-cell.congestion-cell {
+  position: relative;
+  border-color: #ef6c00;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(255 183 77 / 26%) 0 7px,
+    rgb(142 36 170 / 16%) 7px 14px
+  );
+}
+
+.map-cell.congestion-cell::before {
+  content: "混雑×2";
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  z-index: 4;
+  padding: 1px 3px;
+  border-radius: 4px;
+  color: #ffffff;
+  background: #e65100;
+  font-size: clamp(7px, 1vw, 9px);
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.map-cell.low-speed-required-cell {
+  position: relative;
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 9px,
+    rgb(103 58 183 / 8%) 9px 13px
+  );
+}
+
+.map-cell.low-speed-required-cell::after {
+  content: "低速";
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  z-index: 3;
+  color: #5e35b1;
+  font-size: clamp(7px, 1.2vw, 10px);
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.map-cell.tutorial-target-cell {
+  position: relative;
+  z-index: 1;
+  border-color: #ef6c00;
+  background: #fff3e0;
+  animation: tutorial-cell-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes tutorial-cell-pulse {
+  from {
+    box-shadow: inset 0 0 0 2px rgb(255 152 0 / 30%), 0 0 0 0 rgb(255 152 0 / 35%);
+  }
+
+  to {
+    box-shadow: inset 0 0 0 4px rgb(255 152 0 / 75%), 0 0 0 7px rgb(255 152 0 / 0%);
+  }
+}
+
 .train-motion-layer {
   position: absolute;
   z-index: 8;
@@ -566,14 +855,30 @@
   filter: drop-shadow(0 4px 3px rgb(0 0 0 / 35%));
 }
 
-.train-coupler {
-  fill: #263238;
-  stroke: #90a4ae;
-  stroke-width: 1;
+.ghost-train-layer {
+  z-index: 7;
+}
+
+.ghost-train-vehicle {
+  opacity: 0.38;
+  filter:
+    saturate(0.65)
+    drop-shadow(0 0 5px rgb(3 169 244 / 80%));
 }
 
 .train-image {
   pointer-events: none;
+}
+
+.tutorial-departure-button:not(:disabled) {
+  animation: tutorial-departure-pulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes tutorial-departure-pulse {
+  to {
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 8px 0 #bf4f00, 0 0 0 7px rgb(255 152 0 / 18%);
+  }
 }
 
 .train-status {
@@ -606,6 +911,7 @@
   grid-template-areas:
     "label value"
     "scope value"
+    "segments segments"
     "note note";
   align-items: center;
   gap: 4px 18px;
@@ -654,6 +960,30 @@
   color: #5d4037;
   font-size: 15px;
   font-weight: 800;
+}
+
+.route-segment-times {
+  grid-area: segments;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.route-segment-times > span {
+  min-width: 92px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 72%);
+}
+
+.route-segment-times small,
+.route-segment-times b {
+  font-size: 12px;
 }
 
 .time-panel-partial {
@@ -761,6 +1091,195 @@
   width: 72px;
 }
 
+@media (min-width: 900px) {
+  .app {
+    align-items: flex-start;
+    padding: 8px;
+  }
+
+  .screen.game-screen {
+    width: min(1420px, calc(100vw - 16px));
+    height: calc(100vh - 16px);
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    grid-template-areas:
+      "header header"
+      "board target"
+      "board tutorial"
+      "board rails"
+      "board conditions"
+      "board time"
+      "board info"
+      "board hint"
+      "board status"
+      "board message"
+      "board depart";
+    grid-template-rows: auto repeat(10, min-content);
+    align-content: start;
+    align-items: start;
+    column-gap: 18px;
+    row-gap: 5px;
+    padding: 10px 16px;
+    overflow: hidden;
+  }
+
+  .game-header {
+    grid-area: header;
+    margin-bottom: 2px;
+  }
+
+  .game-header h2 {
+    font-size: 25px;
+  }
+
+  .target-time {
+    grid-area: target;
+    margin: 0;
+    font-size: 22px;
+  }
+
+  .tutorial-guide {
+    grid-area: tutorial;
+    width: 100%;
+    margin: 0;
+    padding: 8px 10px;
+    border-width: 2px;
+    box-shadow: 0 3px 0 #f57f17;
+  }
+
+  .tutorial-guide-heading h3 {
+    font-size: 17px;
+  }
+
+  .tutorial-guide p {
+    margin-top: 4px;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .tutorial-progress {
+    margin-top: 6px;
+  }
+
+  .rail-yard {
+    grid-area: rails;
+    width: 100%;
+    margin: 0;
+  }
+
+  .stage-constraints {
+    grid-area: conditions;
+    width: 100%;
+    gap: 4px;
+    margin: 0;
+    padding: 6px;
+  }
+
+  .stage-constraints strong,
+  .stage-constraints span {
+    padding: 5px 7px;
+    font-size: 15px;
+  }
+
+  .grid-map {
+    grid-area: board;
+    align-self: start;
+    justify-self: center;
+    max-width: 100%;
+    max-height: calc(100vh - 82px);
+  }
+
+  .time-panel {
+    grid-area: time;
+    width: 100%;
+    gap: 2px 10px;
+    margin: 0;
+    padding: 9px 11px;
+    border-width: 3px;
+    border-radius: 13px;
+    box-shadow: 0 4px 0 #f57f17;
+  }
+
+  .time-panel-label {
+    padding: 4px 8px;
+    font-size: 14px;
+  }
+
+  .time-panel-scope {
+    font-size: 14px;
+  }
+
+  .time-panel strong,
+  .time-panel-waiting strong {
+    font-size: 32px;
+  }
+
+  .route-segment-times {
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .route-segment-times > span {
+    min-width: 0;
+    flex: 1 1 96px;
+    padding: 3px 5px;
+  }
+
+  .route-segment-times small,
+  .route-segment-times b {
+    font-size: 14px;
+  }
+
+  .time-panel-note {
+    margin-top: 3px;
+    font-size: 14px;
+  }
+
+  .rail-info {
+    grid-area: info;
+    width: 100%;
+    grid-template-columns: repeat(3, auto);
+    gap: 3px 9px;
+    margin: 0;
+    padding: 6px 8px;
+  }
+
+  .rail-info p {
+    font-size: 14px;
+  }
+
+  .route-hint {
+    grid-area: hint;
+    width: 100%;
+    margin: 0;
+    font-size: 14px;
+  }
+
+  .train-status {
+    grid-area: status;
+    width: 100%;
+    margin: 0;
+    padding: 5px 8px;
+    font-size: 15px;
+  }
+
+  .game-message {
+    grid-area: message;
+    width: 100%;
+    margin: 0;
+    padding: 6px 8px;
+    font-size: 15px;
+  }
+
+  .game-screen > .main-button {
+    grid-area: depart;
+    justify-self: center;
+    padding: 8px 28px;
+    font-size: 22px;
+  }
+}
+
 @media (max-width: 720px) {
   .app {
     padding: 10px;
@@ -821,11 +1340,19 @@
       "label"
       "scope"
       "value"
+      "segments"
       "note";
     text-align: center;
   }
 
   .time-panel strong {
     justify-self: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-cell.tutorial-target-cell,
+  .tutorial-departure-button:not(:disabled) {
+    animation: none;
   }
 }
