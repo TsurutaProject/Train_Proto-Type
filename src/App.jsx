@@ -1,5 +1,10 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import './App.css'
+import {
+  getFastRailSavings,
+  getFastRailSavingsMessage,
+  isWithinTargetTime,
+} from './fastRailSavings.js'
 import blueTrainLeftImage from './assets/train-game/blue-train-left.png'
 import blueTrainRightImage from './assets/train-game/blue-train-right.png'
 import curvedRailImage from './assets/train-game/curved-rail.png'
@@ -22,11 +27,32 @@ const STAGES = {
     badge: '練習',
     description: '操作ガイドを見ながら電車を走らせよう',
     isTutorial: true,
-    targetTime: 3,
+    targetTime: 4,
     width: 7,
     height: 8,
     start: { x: 0, y: 2 },
-    goal: { x: 6, y: 2 },
+    goal: { x: 6, y: 3 },
+    relayGroups: [
+      {
+        cells: [
+          { x: 3, y: 2, part: 'entrance-right' },
+          { x: 4, y: 2, part: 'entrance' },
+        ],
+      },
+    ],
+    availableRails: ['slow'],
+  },
+  estimateTutorial: {
+    title: '見積もりチュートリアル',
+    badge: '見積練習',
+    description: 'メモと予想時間を入力して答え合わせしよう',
+    isTutorial: true,
+    isEstimateTutorial: true,
+    targetTime: 4,
+    width: 7,
+    height: 8,
+    start: { x: 0, y: 2 },
+    goal: { x: 6, y: 3 },
     relayGroups: [
       {
         cells: [
@@ -40,11 +66,11 @@ const STAGES = {
   1: {
     title: 'ステージ1',
     description: 'まずはレールを置く操作を覚えよう',
-    targetTime: 6,
+    targetTime: 7,
     width: 8,
     height: 8,
     start: { x: 0, y: 2 },
-    goal: { x: 7, y: 2 },
+    goal: { x: 7, y: 3 },
     relayGroups: [],
     availableRails: ['slow'],
   },
@@ -58,11 +84,14 @@ const STAGES = {
     goal: { x: 7, y: 2 },
     relayGroups: [],
     availableRails: ['slow', 'fast'],
+    maxFastRails: 6,
+    clearCondition: 'within',
+    enableFastRailSaving: true,
   },
   3: {
     title: 'ステージ3',
-    description: '高速レール2本を配分して中継地点を通ろう',
-    targetTime: 3,
+    description: '直進と高速レールを使う遠回りを比べよう',
+    targetTime: 4,
     width: 8,
     height: 8,
     start: { x: 0, y: 2 },
@@ -76,7 +105,7 @@ const STAGES = {
       },
     ],
     availableRails: ['slow', 'fast'],
-    maxFastRails: 2,
+    maxFastRails: 4,
   },
   4: {
     title: 'ステージ4',
@@ -95,6 +124,9 @@ const STAGES = {
       { x: 5, y: 3, type: 'tree' },
     ],
     availableRails: ['slow', 'fast'],
+    maxFastRails: 8,
+    clearCondition: 'within',
+    enableFastRailSaving: true,
   },
   5: {
     title: 'ステージ5',
@@ -137,8 +169,10 @@ const STAGES = {
     ],
     obstacles: [],
     availableRails: ['slow', 'fast'],
-    maxFastRails: 2,
+    maxFastRails: 6,
     relayRequiresSlowApproach: true,
+    clearCondition: 'within',
+    enableFastRailSaving: true,
   },
   7: {
     title: 'ステージ7',
@@ -160,6 +194,7 @@ const STAGES = {
     availableRails: ['slow', 'fast'],
     maxFastRails: 3,
     relayRequiresSlowApproach: true,
+    clearCondition: 'within',
   },
   8: {
     title: 'ステージ8',
@@ -203,7 +238,7 @@ const STAGES = {
   },
   10: {
     title: 'ステージ10',
-    description: '高さの違うゴールと、ゴール前の低速エリアに挑戦',
+    description: '高さの違うゴールと、ゴール前の「のんびり」に挑戦',
     targetTime: 7.5,
     width: 9,
     height: 8,
@@ -212,12 +247,15 @@ const STAGES = {
     relayGroups: [],
     obstacles: [],
     availableRails: ['slow', 'fast'],
+    maxFastRails: 10,
     slowZoneRadius: 3,
+    clearCondition: 'within',
+    enableFastRailSaving: true,
   },
   11: {
     title: 'ステージ11',
     description: '横中継を抜けて折り返し、縦中継から別の高さへ進もう',
-    targetTime: 13,
+    targetTime: 11.5,
     width: 11,
     height: 8,
     start: { x: 0, y: 1 },
@@ -237,7 +275,7 @@ const STAGES = {
         ],
       },
     ],
-    turnaroundPoints: [{ x: 10, y: 1 }],
+    turnaroundPoints: [{ x: 9, y: 1 }],
     obstacles: [
       { x: 6, y: 2, type: 'tree' },
       { x: 7, y: 2, type: 'rock' },
@@ -249,7 +287,7 @@ const STAGES = {
   },
   12: {
     title: 'ステージ12',
-    description: '複数中継・高低差・ゴール前低速をまとめて攻略しよう',
+    description: '複数中継・高低差・ゴール前の「のんびり」をまとめて攻略しよう',
     targetTime: 8,
     width: 11,
     height: 8,
@@ -277,6 +315,7 @@ const STAGES = {
     maxFastRails: 4,
     relayRequiresSlowApproach: true,
     slowZoneRadius: 3,
+    clearCondition: 'within',
   },
   13: {
     title: 'ステージ13',
@@ -308,7 +347,7 @@ const STAGES = {
   14: {
     title: 'ステージ14',
     description: '混雑区画を迂回するか、高速で抜けるか選ぼう',
-    targetTime: 7,
+    targetTime: 8,
     width: 11,
     height: 8,
     start: { x: 0, y: 3 },
@@ -334,7 +373,7 @@ const STAGES = {
       { x: 8, y: 4 },
     ],
     availableRails: ['slow', 'fast'],
-    maxFastRails: 4,
+    maxFastRails: 9,
     relayRequiresSlowApproach: true,
   },
   15: {
@@ -370,6 +409,7 @@ const STAGES = {
     availableRails: ['slow', 'fast'],
     maxFastRails: 5,
     relayRequiresSlowApproach: true,
+    clearCondition: 'within',
   },
   16: {
     title: 'ステージ16',
@@ -440,6 +480,20 @@ const RAIL_TYPES = {
   },
 }
 
+const ESTIMATE_MEMO_FIELDS = [
+  { key: 'slowRails', label: '低速レール' },
+  { key: 'fastRails', label: '高速レール' },
+  { key: 'congestionPasses', label: '通過する混雑マス' },
+  { key: 'repeatedCells', label: '2回通るマス' },
+]
+
+const EMPTY_ESTIMATE_MEMO = {
+  slowRails: '',
+  fastRails: '',
+  congestionPasses: '',
+  repeatedCells: '',
+}
+
 const DIRECTION_STEPS = {
   up: { x: 0, y: -1 },
   right: { x: 1, y: 0 },
@@ -456,6 +510,8 @@ const OPPOSITE_DIRECTIONS = {
 
 const ANIMATION_MS_PER_GAME_SECOND = 550
 const TRAIN_ANIMATION_SPEED_MULTIPLIER = 1.5
+const STAGE_RESULTS_STORAGE_KEY = 'train-game-stage-results-v2'
+const EXACT_TIME_TOLERANCE = 0.0001
 
 const getDirectionBetween = (from, to) => {
   return Object.entries(DIRECTION_STEPS).find(
@@ -463,11 +519,57 @@ const getDirectionBetween = (from, to) => {
   )?.[0]
 }
 
-const getStageResultLabel = (stageResult) => {
-  if (Math.abs(stageResult.difference) < 0.0001) return '✓ 時間ぴったり'
+const getClearCondition = (stage) => stage.clearCondition ?? 'exact'
+
+const isStageCleared = (stage, stageResult) => {
+  if (!stageResult) return false
+
+  return getClearCondition(stage) === 'within'
+    ? isWithinTargetTime(
+      stageResult.actualTime,
+      stage.targetTime,
+      true,
+      EXACT_TIME_TOLERANCE,
+    )
+    : Math.abs(stageResult.difference) < EXACT_TIME_TOLERANCE
+}
+
+const getStageResultLabel = (stage, stageResult) => {
+  if (getClearCondition(stage) === 'within') {
+    return stageResult.difference <= EXACT_TIME_TOLERANCE
+      ? '✓ 時間以内'
+      : `${stageResult.difference.toFixed(1)}秒早くできそう`
+  }
+
+  if (Math.abs(stageResult.difference) < EXACT_TIME_TOLERANCE) {
+    return '✓ 時間ぴったり'
+  }
 
   const seconds = Math.abs(stageResult.difference).toFixed(1)
-  return `✓ ${seconds}秒${stageResult.difference > 0 ? '遅い' : '早い'}`
+  return `${seconds}秒${stageResult.difference > 0 ? '早く' : 'ゆっくり'}できそう`
+}
+
+const getStageResultKey = (stageId, isEstimateMode) => {
+  const normalizedStageId = stageId === 'estimateTutorial' ? 'tutorial' : stageId
+  return `${isEstimateMode ? 'estimate' : 'normal'}:${normalizedStageId}`
+}
+
+const loadStageResults = () => {
+  try {
+    return JSON.parse(window.localStorage.getItem(STAGE_RESULTS_STORAGE_KEY)) ?? {}
+  } catch {
+    return {}
+  }
+}
+
+const getBoundedInputValue = (value, wholeNumber = false) => {
+  if (value === '') return ''
+
+  const number = Number(value)
+  if (!Number.isFinite(number)) return ''
+
+  const boundedNumber = Math.min(99, Math.max(0, number))
+  return String(wholeNumber ? Math.floor(boundedNumber) : boundedNumber)
 }
 
 const getRailAssetConfig = (connections) => {
@@ -580,6 +682,16 @@ function TurnaroundAsset() {
   )
 }
 
+function StageListIcon() {
+  return (
+    <span className="stage-list-icon" aria-hidden="true">
+      {Array.from({ length: 4 }, (_, index) => (
+        <span key={index} />
+      ))}
+    </span>
+  )
+}
+
 function MovingTrain({ motion, duration, ghost = false }) {
   return (
     <g
@@ -620,12 +732,32 @@ function App() {
   const [result, setResult] = useState(null)
   const [message, setMessage] = useState('')
   const [trainRun, setTrainRun] = useState(null)
+  const [routePhase, setRoutePhase] = useState(0)
   const [ghostMotion, setGhostMotion] = useState(null)
-  const [stageResults, setStageResults] = useState({})
+  const [stageResults, setStageResults] = useState(loadStageResults)
+  const [estimateMode, setEstimateMode] = useState(false)
+  const [estimateRevealed, setEstimateRevealed] = useState(false)
+  const [userEstimatedTime, setUserEstimatedTime] = useState('')
+  const [estimateMemo, setEstimateMemo] = useState(EMPTY_ESTIMATE_MEMO)
   const mapRef = useRef(null)
+  const trainMotionLayerRef = useRef(null)
   const trainRunIdRef = useRef(0)
+  const slowRailDragRef = useRef({
+    active: false,
+    pointerId: null,
+    lastCellKey: null,
+    moved: false,
+    startedWithSlowRail: false,
+  })
 
   const currentStage = selectedStage ? STAGES[selectedStage] : null
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      STAGE_RESULTS_STORAGE_KEY,
+      JSON.stringify(stageResults),
+    )
+  }, [stageResults])
 
   const startStage = (stageNumber) => {
     setSelectedStage(stageNumber)
@@ -634,7 +766,11 @@ function App() {
     setResult(null)
     setMessage('')
     setTrainRun(null)
+    setRoutePhase(0)
     setGhostMotion(null)
+    setEstimateRevealed(false)
+    setUserEstimatedTime('')
+    setEstimateMemo(EMPTY_ESTIMATE_MEMO)
     setScreen('game')
   }
 
@@ -721,18 +857,6 @@ function App() {
     )
   }
 
-  const getFastRestrictionMessage = (position) => {
-    if (isRelayConnectionPosition(position)) {
-      return '中継地点に接続できるのは低速レールだけです。'
-    }
-
-    if (isSlowZonePosition(position)) {
-      return `ゴールから${currentStage.slowZoneRadius}マス以内は低速エリアです。`
-    }
-
-    return ''
-  }
-
   const isSpecialCell = (x, y) => {
     if (!currentStage) return false
 
@@ -750,6 +874,117 @@ function App() {
     return placedRails.find((rail) => rail.x === x && rail.y === y)
   }
 
+  const placeSlowRail = (x, y) => {
+    const position = { x, y }
+
+    if (isSpecialCell(x, y) || getObstacleAt(position) || trainRun) return
+
+    setMessage('')
+    setPlacedRails((previousRails) => {
+      const currentRail = previousRails.find(
+        (rail) => rail.x === x && rail.y === y,
+      )
+
+      if (currentRail?.type === 'slow') return previousRails
+
+      return [
+        ...previousRails.filter((rail) => rail.x !== x || rail.y !== y),
+        { x, y, type: 'slow' },
+      ]
+    })
+  }
+
+  const removeRail = (x, y) => {
+    setPlacedRails((previousRails) =>
+      previousRails.filter((rail) => rail.x !== x || rail.y !== y),
+    )
+  }
+
+  const getCellFromPointerEvent = (event) => {
+    const element = document.elementFromPoint(event.clientX, event.clientY)
+    const cell = element?.closest('[data-cell-key]')
+
+    if (!cell || !mapRef.current?.contains(cell)) return null
+
+    const [x, y] = cell.dataset.cellKey.split('-').map(Number)
+    return { cell, x, y, key: cell.dataset.cellKey }
+  }
+
+  const startSlowRailDrag = (event) => {
+    if (
+      selectedRailType !== 'slow' ||
+      trainRun ||
+      (event.pointerType === 'mouse' && event.button !== 0)
+    ) {
+      return
+    }
+
+    const target = getCellFromPointerEvent(event)
+    if (!target || target.cell.disabled || isSpecialCell(target.x, target.y)) return
+
+    const startedWithSlowRail = getRailAt(target.x, target.y)?.type === 'slow'
+    slowRailDragRef.current = {
+      active: true,
+      pointerId: event.pointerId,
+      lastCellKey: target.key,
+      moved: false,
+      startedWithSlowRail,
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    placeSlowRail(target.x, target.y)
+  }
+
+  const continueSlowRailDrag = (event) => {
+    const drag = slowRailDragRef.current
+    if (!drag.active || drag.pointerId !== event.pointerId) return
+
+    const target = getCellFromPointerEvent(event)
+    if (!target || target.key === drag.lastCellKey) return
+
+    drag.lastCellKey = target.key
+    drag.moved = true
+    placeSlowRail(target.x, target.y)
+  }
+
+  const finishSlowRailDrag = (event) => {
+    const drag = slowRailDragRef.current
+    if (!drag.active || drag.pointerId !== event.pointerId) return
+
+    if (!drag.moved && drag.startedWithSlowRail && drag.lastCellKey) {
+      const [x, y] = drag.lastCellKey.split('-').map(Number)
+      removeRail(x, y)
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+
+    slowRailDragRef.current = {
+      active: false,
+      pointerId: null,
+      lastCellKey: null,
+      moved: false,
+      startedWithSlowRail: false,
+    }
+  }
+
+  const cancelSlowRailDrag = (event) => {
+    const drag = slowRailDragRef.current
+    if (!drag.active || drag.pointerId !== event.pointerId) return
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+
+    slowRailDragRef.current = {
+      active: false,
+      pointerId: null,
+      lastCellKey: null,
+      moved: false,
+      startedWithSlowRail: false,
+    }
+  }
+
   const toggleRail = (x, y) => {
     const position = { x, y }
 
@@ -760,13 +995,6 @@ function App() {
 
     if (rail?.type === selectedRailType) {
       setPlacedRails(placedRails.filter((item) => !(item.x === x && item.y === y)))
-      return
-    }
-
-    const fastRestrictionMessage = getFastRestrictionMessage(position)
-
-    if (selectedRailType === 'fast' && fastRestrictionMessage) {
-      setMessage(fastRestrictionMessage)
       return
     }
 
@@ -800,21 +1028,37 @@ function App() {
     { x: position.x - 1, y: position.y },
   ]
 
-  const getConnectionsFromRoute = (position, routePositions) => {
+  const getConnectionVariantsFromRoute = (position, routePositions) => {
     if (!routePositions) return []
 
-    return [
-      ...new Set(
-        routePositions.flatMap((routePosition, routeIndex) => {
-          if (!isSamePosition(routePosition, position)) return []
+    const variants = routePositions.flatMap((routePosition, routeIndex) => {
+      if (!isSamePosition(routePosition, position)) return []
 
-          return [routePositions[routeIndex - 1], routePositions[routeIndex + 1]]
+      const connections = [
+        ...new Set(
+          [routePositions[routeIndex - 1], routePositions[routeIndex + 1]]
             .filter(Boolean)
             .map((neighbor) => getDirectionBetween(position, neighbor))
-            .filter(Boolean)
-        }),
-      ),
-    ]
+            .filter(Boolean),
+        ),
+      ]
+      const phase = routePositions
+        .slice(0, routeIndex)
+        .filter((routePositionBefore) =>
+          getTurnaroundPointAt(routePositionBefore),
+        ).length
+
+      return connections.length > 0 ? [{ phase, connections }] : []
+    })
+
+    return variants.filter(
+      (variant, index) =>
+        variants.findIndex(
+          (candidate) =>
+            candidate.phase === variant.phase &&
+            candidate.connections.join('-') === variant.connections.join('-'),
+        ) === index,
+    )
   }
 
   const isInsideMap = (position) => {
@@ -856,12 +1100,64 @@ function App() {
     })
   }
 
-  const getTravelTimeAt = (position) => {
+  const getRailTravelDetails = (position) => {
     const rail = getRailAt(position.x, position.y)
+    if (!rail) return null
+
     const congestionMultiplier = getCongestionAt(position) ? 2 : 1
-    return rail
-      ? congestionMultiplier / RAIL_TYPES[rail.type].speed
-      : 0
+    const effectiveRailType =
+      rail.type === 'fast' &&
+      (isSlowZonePosition(position) || isRelayConnectionPosition(position))
+        ? 'slow'
+        : rail.type
+    const baseTime = 1 / RAIL_TYPES[effectiveRailType].speed
+
+    return {
+      rail,
+      baseTime,
+      congestionTime: baseTime * (congestionMultiplier - 1),
+      totalTime: baseTime * congestionMultiplier,
+    }
+  }
+
+  const getTravelTimeAt = (position) => {
+    return getRailTravelDetails(position)?.totalTime ?? 0
+  }
+
+  const getRouteMemoBreakdown = (route) => {
+    const breakdown = {
+      slowRails: { count: 0, time: 0 },
+      fastRails: { count: 0, time: 0 },
+      congestionPasses: { count: 0, time: 0 },
+      repeatedCells: { count: 0, time: 0 },
+    }
+    const visitCounts = new Map()
+
+    route.positions.slice(1).forEach((position) => {
+      const details = getRailTravelDetails(position)
+      if (!details) return
+
+      const key = positionToKey(position)
+      const previousVisits = visitCounts.get(key) ?? 0
+
+      if (previousVisits === 0) {
+        const railKey = details.rail.type === 'fast' ? 'fastRails' : 'slowRails'
+        breakdown[railKey].count += 1
+        breakdown[railKey].time += details.baseTime
+      } else {
+        if (previousVisits === 1) breakdown.repeatedCells.count += 1
+        breakdown.repeatedCells.time += details.baseTime
+      }
+
+      if (details.congestionTime > 0) {
+        breakdown.congestionPasses.count += 1
+        breakdown.congestionPasses.time += details.congestionTime
+      }
+
+      visitCounts.set(key, previousVisits + 1)
+    })
+
+    return breakdown
   }
 
   const getRelayMaskAt = (position) => {
@@ -1018,7 +1314,7 @@ function App() {
 
     const requiredRelayMask = getRelayCells().reduce(
       (mask, relayCell, index) =>
-        relayCell.relayIndex === requiredRelayIndex ? mask | (1 << index) : mask,
+        relayCell.relayIndex <= requiredRelayIndex ? mask | (1 << index) : mask,
       0,
     )
     const startRelayMask = getRelayMaskAt(currentStage.start)
@@ -1227,6 +1523,7 @@ function App() {
       path: commands.join(' '),
       keyPoints: keyPoints.join(';'),
       keyTimes: keyTimes.join(';'),
+      keyTimeValues: keyTimes,
       width: mapRect.width,
       height: mapRect.height,
       trainCarWidth: routePoints[0].size * 0.62,
@@ -1237,30 +1534,143 @@ function App() {
   useEffect(() => {
     if (!trainRun || screen !== 'game') return undefined
 
+    const elapsedDuration = trainRun.elapsedDuration ?? 0
+    const playbackRate = trainRun.playbackRate ?? 1
+    const remainingDuration = Math.max(
+      0,
+      trainRun.duration - elapsedDuration,
+    )
+
     const timer = window.setTimeout(() => {
       setResult(trainRun.result)
       setStageResults((previousResults) => {
-        const previousResult = previousResults[trainRun.stageId]
+        const previousResult = previousResults[trainRun.resultKey]
 
-        if (
-          previousResult &&
-          Math.abs(previousResult.difference) <=
+        if (previousResult) {
+          if (trainRun.result.clearCondition === 'within') {
+            const previousCleared = isWithinTargetTime(
+              previousResult.actualTime,
+              previousResult.targetTime,
+              true,
+              EXACT_TIME_TOLERANCE,
+            )
+            if (previousCleared && !trainRun.result.cleared) return previousResults
+
+            if (
+              previousCleared &&
+              trainRun.result.cleared &&
+              trainRun.result.fastRailSavingsEligible
+            ) {
+              const previousRemaining = previousResult.remainingFastRails ?? -1
+              const nextRemaining = trainRun.result.remainingFastRails ?? -1
+              if (previousRemaining >= nextRemaining) return previousResults
+            } else if (
+              !trainRun.result.cleared &&
+              Math.abs(previousResult.difference) <=
+                Math.abs(trainRun.result.difference)
+            ) {
+              return previousResults
+            }
+          } else if (
+            Math.abs(previousResult.difference) <=
             Math.abs(trainRun.result.difference)
-        ) {
-          return previousResults
+          ) {
+            return previousResults
+          }
         }
 
         return {
           ...previousResults,
-          [trainRun.stageId]: trainRun.result,
+          [trainRun.resultKey]: trainRun.result,
         }
       })
       setTrainRun(null)
       setScreen('result')
-    }, trainRun.duration + 450)
+    }, remainingDuration / playbackRate + 450)
 
     return () => window.clearTimeout(timer)
   }, [screen, trainRun])
+
+  useEffect(() => {
+    if (!trainRun || screen !== 'game') return undefined
+
+    const elapsedDuration = trainRun.elapsedDuration ?? 0
+    const playbackRate = trainRun.playbackRate ?? 1
+    let nextPhase = 0
+    const timers = trainRun.route.positions.flatMap((position, routeIndex) => {
+      const isTurnaround = currentStage.turnaroundPoints?.some(
+        (turnaroundPoint) =>
+          position.x === turnaroundPoint.x && position.y === turnaroundPoint.y,
+      )
+      if (!isTurnaround) return []
+
+      nextPhase += 1
+      const phase = nextPhase
+      const phaseTime =
+        trainRun.duration * (trainRun.motion.keyTimeValues[routeIndex] ?? 0)
+      const delay = Math.max(0, phaseTime - elapsedDuration) / playbackRate
+
+      return [
+        window.setTimeout(() => {
+          setRoutePhase(phase)
+        }, delay),
+      ]
+    })
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer))
+  }, [currentStage, screen, trainRun])
+
+  useEffect(() => {
+    if (
+      !trainRun ||
+      screen !== 'game' ||
+      trainRun.playbackRate !== 2 ||
+      !trainMotionLayerRef.current
+    ) {
+      return undefined
+    }
+
+    const motionLayer = trainMotionLayerRef.current
+    let animationFrame
+    let previousTimestamp = window.performance.now()
+
+    const advanceAnimation = (timestamp) => {
+      const elapsedSeconds = (timestamp - previousTimestamp) / 1000
+      previousTimestamp = timestamp
+
+      if (typeof motionLayer.getCurrentTime === 'function') {
+        motionLayer.setCurrentTime(
+          motionLayer.getCurrentTime() + elapsedSeconds,
+        )
+      }
+
+      animationFrame = window.requestAnimationFrame(advanceAnimation)
+    }
+
+    animationFrame = window.requestAnimationFrame(advanceAnimation)
+    return () => window.cancelAnimationFrame(animationFrame)
+  }, [screen, trainRun])
+
+  const toggleTrainSpeed = () => {
+    setTrainRun((currentRun) => {
+      if (!currentRun) return currentRun
+
+      const now = window.performance.now()
+      const elapsedSinceSpeedChange = now - currentRun.startedAt
+      const elapsedDuration = Math.min(
+        currentRun.duration,
+        (currentRun.elapsedDuration ?? 0) +
+          elapsedSinceSpeedChange * (currentRun.playbackRate ?? 1),
+      )
+
+      return {
+        ...currentRun,
+        elapsedDuration,
+        playbackRate: currentRun.playbackRate === 2 ? 1 : 2,
+        startedAt: now,
+      }
+    })
+  }
 
   const startTrain = () => {
     if (trainRun) return
@@ -1278,13 +1688,60 @@ function App() {
       return
     }
 
+    const parsedUserEstimatedTime = Number(userEstimatedTime)
+    if (
+      estimateMode &&
+      (userEstimatedTime.trim() === '' ||
+        !Number.isFinite(parsedUserEstimatedTime) ||
+        parsedUserEstimatedTime < 0 ||
+        parsedUserEstimatedTime > 99)
+    ) {
+      setMessage('出発前に、自分の予想時間を入力してください。')
+      return
+    }
+
     const actualTime = route.time
     const difference = actualTime - currentStage.targetTime
+    const clearCondition = getClearCondition(currentStage)
+    const cleared = clearCondition === 'within'
+      ? isWithinTargetTime(
+        actualTime,
+        currentStage.targetTime,
+        true,
+        EXACT_TIME_TOLERANCE,
+      )
+      : Math.abs(difference) < EXACT_TIME_TOLERANCE
+    const fastRailSavings = getFastRailSavings({
+      maxHighSpeedRails: currentStage.maxFastRails,
+      placedRails,
+      cleared,
+      savingsEligible: currentStage.enableFastRailSaving,
+    })
 
     const nextResult = {
       targetTime: currentStage.targetTime,
       actualTime,
       difference,
+      clearCondition,
+      cleared,
+      maxFastRails: currentStage.maxFastRails ?? null,
+      placedFastRails: fastRailSavings.placedHighSpeedRails,
+      remainingFastRails: fastRailSavings.savedHighSpeedRails,
+      fastRailSavingsAwarded: fastRailSavings.savingsAwarded,
+      fastRailSavingsEligible: Boolean(currentStage.enableFastRailSaving),
+      estimate: estimateMode
+        ? {
+          userTime: parsedUserEstimatedTime,
+          memo: Object.fromEntries(
+            Object.entries(estimateMemo).map(([key, value]) => [
+              key,
+              value.trim() === '' ? 0 : Number(value),
+            ]),
+          ),
+          breakdown: getRouteMemoBreakdown(route),
+          segments: getRouteSegmentTimes(route),
+        }
+        : null,
     }
     const motion = createTrainMotion(route)
 
@@ -1298,14 +1755,20 @@ function App() {
 
     setResult(null)
     setMessage('')
+    setRoutePhase(0)
+    setEstimateRevealed(true)
     trainRunIdRef.current += 1
     setTrainRun({
       id: trainRunIdRef.current,
       stageId: selectedStage,
+      resultKey: getStageResultKey(selectedStage, estimateMode),
       route,
       result: nextResult,
       duration,
       motion,
+      elapsedDuration: 0,
+      playbackRate: 1,
+      startedAt: window.performance.now(),
     })
   }
 
@@ -1330,32 +1793,77 @@ function App() {
     const position = { x, y }
     const rail = getRailAt(x, y)
     const obstacle = getObstacleAt(position)
-    const routeConnections = getConnectionsFromRoute(position, route?.positions)
-    const isOnRoute = routeConnections.length > 0
+    const routeConnectionVariants = getConnectionVariantsFromRoute(
+      position,
+      route?.positions,
+    )
+    const activeConnectionVariant =
+      routeConnectionVariants.find((variant) => variant.phase === routePhase) ??
+      routeConnectionVariants.at(-1)
+    const routeConnections = activeConnectionVariant?.connections ?? []
+    const isOnRoute = routeConnectionVariants.length > 0
     const connections = isOnRoute
       ? routeConnections
       : rail
         ? getFallbackConnections(position)
         : []
+    const renderRouteRail = (type, showSpeed = true) => {
+      const connectionVariants =
+        !trainRun && routeConnectionVariants.length > 1
+          ? routeConnectionVariants.filter(
+            (variant, index, variants) =>
+              variants.findIndex(
+                (candidate) =>
+                  candidate.connections.join('-') ===
+                  variant.connections.join('-'),
+              ) === index,
+          )
+          : [{ phase: routePhase, connections }]
+
+      if (connectionVariants.length === 1) {
+        return (
+          <RailPiece
+            type={type}
+            compact
+            connections={connectionVariants[0].connections}
+            showSpeed={showSpeed}
+          />
+        )
+      }
+
+      return (
+        <span className="rail-switch-stack" aria-hidden="true">
+          {connectionVariants.map((variant, index) => (
+            <RailPiece
+              key={`${variant.phase}-${variant.connections.join('-')}`}
+              type={type}
+              compact
+              connections={variant.connections}
+              showSpeed={showSpeed && index === 0}
+            />
+          ))}
+        </span>
+      )
+    }
 
     if (obstacle) {
       return <ObstacleAsset type={obstacle.type} />
     }
 
     if (getTurnaroundPointAt(position)) {
-      return <TurnaroundAsset />
+      return (
+        <span className="special-cell-content">
+          {isOnRoute && renderRouteRail('station', false)}
+          <TurnaroundAsset />
+        </span>
+      )
     }
 
     if (currentStage && isSamePosition(position, currentStage.start)) {
       return (
         <span className="special-cell-content">
           {isOnRoute && (
-            <RailPiece
-              type="station"
-              compact
-              connections={connections}
-              showSpeed={false}
-            />
+            renderRouteRail('station', false)
           )}
           <SpecialCellAsset type="start" label="S" />
         </span>
@@ -1366,12 +1874,7 @@ function App() {
       return (
         <span className="special-cell-content">
           {isOnRoute && (
-            <RailPiece
-              type="station"
-              compact
-              connections={connections}
-              showSpeed={false}
-            />
+            renderRouteRail('station', false)
           )}
           <SpecialCellAsset type="goal" label="G" />
         </span>
@@ -1401,13 +1904,7 @@ function App() {
     }
 
     if (rail) {
-      return (
-        <RailPiece
-          type={rail.type}
-          compact
-          connections={connections}
-        />
-      )
+      return renderRouteRail(rail.type)
     }
 
     return ''
@@ -1416,12 +1913,22 @@ function App() {
   const getResultMessage = () => {
     if (!result) return ''
 
-    if (result.difference === 0) {
+    if (result.clearCondition === 'within') {
+      if (!result.cleared) {
+        return `${Math.abs(result.difference).toFixed(1)}秒早くできそう`
+      }
+
+      return '時間以内に到着！'
+    }
+
+    if (Math.abs(result.difference) < EXACT_TIME_TOLERANCE) {
       return '時間ぴったり！'
     }
 
     const seconds = Math.abs(result.difference).toFixed(1)
-    return result.difference > 0 ? `${seconds}秒遅い！` : `${seconds}秒早い！`
+    return result.difference > 0
+      ? `${seconds}秒早くできそう`
+      : `${seconds}秒ゆっくりできそう`
   }
 
   const shortestRoute = currentStage ? findShortestRoute() : null
@@ -1438,16 +1945,18 @@ function App() {
             relayTarget.relayIndex,
           ),
         }))
-        .find((relayRoute) => relayRoute.route) ?? null
+        .filter((relayRoute) => relayRoute.route)
+        .at(-1) ?? null
       : null
   const visibleRoute = shortestRoute ?? connectedRelayRoute?.route ?? null
   const visibleRouteRailCount =
     visibleRoute?.positions.filter((position) => getRailAt(position.x, position.y))
       .length ?? 0
-  const placedFastRailCount = placedRails.filter((rail) => rail.type === 'fast').length
-  const remainingFastRails = currentStage?.maxFastRails
-    ? Math.max(0, currentStage.maxFastRails - placedFastRailCount)
-    : null
+  const currentFastRailSavings = getFastRailSavings({
+    maxHighSpeedRails: currentStage?.maxFastRails,
+    placedRails,
+  })
+  const remainingFastRails = currentFastRailSavings.savedHighSpeedRails
   const getRouteSegmentTimes = (route) => {
     if (!route) return []
 
@@ -1475,6 +1984,7 @@ function App() {
         segments.push({
           label: `${previousMilestoneLabel} → ${milestoneLabel}`,
           time: elapsedTime - previousMilestoneTime,
+          relayIndex,
         })
         completedRelayIndexes.add(relayIndex)
         previousMilestoneTime = elapsedTime
@@ -1495,6 +2005,72 @@ function App() {
     return segments
   }
   const visibleRouteSegments = getRouteSegmentTimes(visibleRoute)
+  const shouldRevealEstimate = !estimateMode || estimateRevealed
+  const revealedEstimateBreakdown =
+    trainRun?.result.estimate?.breakdown ??
+    (estimateRevealed && shortestRoute
+      ? getRouteMemoBreakdown(shortestRoute)
+      : null)
+  const mapSegmentTimeLabels = (() => {
+    const usedPositions = new Set()
+
+    return visibleRouteSegments.flatMap((segment) => {
+      if (segment.relayIndex === undefined) return []
+
+      const relayGroup = currentStage.relayGroups[segment.relayIndex]
+      const firstCell = relayGroup.cells[0]
+      const lastCell = relayGroup.cells[relayGroup.cells.length - 1]
+      const orientation =
+        relayGroup.orientation ??
+        (firstCell.x === lastCell.x ? 'vertical' : 'horizontal')
+      const nearbyCandidates = relayGroup.cells.flatMap((cell) =>
+        orientation === 'vertical'
+          ? [
+            { x: cell.x + 1, y: cell.y },
+            { x: cell.x - 1, y: cell.y },
+            { x: cell.x + 2, y: cell.y },
+            { x: cell.x - 2, y: cell.y },
+          ]
+          : [
+            { x: cell.x, y: cell.y - 1 },
+            { x: cell.x, y: cell.y + 1 },
+            { x: cell.x, y: cell.y - 2 },
+            { x: cell.x, y: cell.y + 2 },
+          ],
+      )
+      const fallbackCandidates = Array.from(
+        { length: currentStage.width * currentStage.height },
+        (_, index) => ({
+          x: index % currentStage.width,
+          y: Math.floor(index / currentStage.width),
+        }),
+      ).sort((a, b) => {
+        const distanceA = Math.abs(a.x - firstCell.x) + Math.abs(a.y - firstCell.y)
+        const distanceB = Math.abs(b.x - firstCell.x) + Math.abs(b.y - firstCell.y)
+        return distanceA - distanceB
+      })
+      const labelPosition = [...nearbyCandidates, ...fallbackCandidates].find(
+        (position) => {
+          const key = positionToKey(position)
+          return (
+            isInsideMap(position) &&
+            !usedPositions.has(key) &&
+            !isSpecialCell(position.x, position.y) &&
+            !getObstacleAt(position) &&
+            !getRailAt(position.x, position.y)
+          )
+        },
+      )
+
+      if (!labelPosition) return []
+
+      usedPositions.add(positionToKey(labelPosition))
+      return [{ ...segment, position: labelPosition }]
+    })
+  })()
+  const mapSegmentTimeLabelByPosition = new Map(
+    mapSegmentTimeLabels.map((label) => [positionToKey(label.position), label]),
+  )
   const timePanelStatus = shortestRoute
     ? 'connected'
     : connectedRelayRoute
@@ -1538,19 +2114,36 @@ function App() {
   const tutorialFirstRail = currentStage?.isTutorial
     ? getRailAt(1, currentStage.start.y)
     : null
-  const tutorialStep = !currentStage?.isTutorial
+  const tutorialExitRail = currentStage?.isTutorial
+    ? getRailAt(5, currentStage.start.y)
+    : null
+  const estimateTutorialMemoComplete =
+    estimateMemo.slowRails === '4' &&
+    estimateMemo.fastRails === '0' &&
+    estimateMemo.congestionPasses === '0' &&
+    estimateMemo.repeatedCells === '0'
+  const tutorialTotalSteps = currentStage?.isEstimateTutorial ? 7 : 5
+  const tutorialStep = trainRun || !currentStage?.isTutorial
     ? null
     : shortestRoute
-      ? 4
-      : connectedRelayRoute
-        ? 3
-        : tutorialFirstRail
-          ? 2
-          : 1
-  const tutorialInstructions = {
+      ? currentStage.isEstimateTutorial
+        ? userEstimatedTime === '4'
+          ? 7
+          : estimateTutorialMemoComplete
+            ? 6
+            : 5
+        : 5
+      : tutorialExitRail
+        ? 4
+        : connectedRelayRoute
+          ? 3
+          : tutorialFirstRail
+            ? 2
+            : 1
+  const standardTutorialInstructions = {
     1: {
       title: 'レールを置いてみよう',
-      body: '低速レールは選択済みです。スタートの右にある点滅中の空きマスを押してください。',
+      body: '低速レールは選択済みです。スタートの右にある、黄色い枠の空きマスを押してください。',
     },
     2: {
       title: '中継地点までつなごう',
@@ -1561,17 +2154,60 @@ function App() {
       body: '半透明の電車が接続済みルートを繰り返し走ります。確認できたら、トンネルの右にレールを置いてゴールへつなげましょう。',
     },
     4: {
+      title: '2つのルートから選ぼう',
+      body: '右へ進んでから下へ曲がるか、先に下へ曲がるかを選び、どちらか1マスにレールを置いてください。',
+    },
+    5: {
       title: '準備完了！ 出発しよう',
       body: 'ゴールまでつながりました。予想時間を確認して「出発」を押してください。',
     },
   }
+  const estimateTutorialInstructions = {
+    1: {
+      title: '低速レールを置こう',
+      body: '低速レールは選択済みです。盤面で黄色い枠になっている、スタート右のマスを押してください。',
+    },
+    2: {
+      title: '中継地点までつなごう',
+      body: '次に黄色い枠になったマスを押して、中継地点までレールをつなげてください。',
+    },
+    3: {
+      title: 'プレビューを確認しよう',
+      body: 'ゴースト電車が接続済みルートを走ります。確認したら、トンネル右の黄色い枠のマスを押してください。',
+    },
+    4: {
+      title: 'ゴールへつなごう',
+      body: '黄色い枠の2マスからどちらか一方を押すと、ゴールまで接続できます。',
+    },
+    5: {
+      title: '見積もりメモを入力しよう',
+      body: '強調されたメモへ、低速レール「4」、残り3項目へ「0」を入力してください。',
+    },
+    6: {
+      title: '予想時間を入力しよう',
+      body: '強調された「自分の予想」へ「4」と入力してください。',
+    },
+    7: {
+      title: '出発して答え合わせしよう',
+      body: '準備完了です。黄色い枠の「出発」を押すと、予想時間と内訳が表示されます。',
+    },
+  }
+  const tutorialInstructions = currentStage?.isEstimateTutorial
+    ? estimateTutorialInstructions
+    : standardTutorialInstructions
 
   const isTutorialTargetCell = (x, y) => {
-    if (!tutorialStep || y !== currentStage.start.y) return false
+    if (!tutorialStep) return false
 
-    if (tutorialStep === 1) return x === 1
-    if (tutorialStep === 2) return x === 2
-    if (tutorialStep === 3) return x === 5
+    if (tutorialStep === 1) return x === 1 && y === currentStage.start.y
+    if (tutorialStep === 2) return x === 2 && y === currentStage.start.y
+    if (tutorialStep === 3) return x === 5 && y === currentStage.start.y
+    if (tutorialStep === 4) {
+      return (
+        (x === 6 && y === currentStage.start.y) ||
+        (x === 5 && y === currentStage.goal.y)
+      )
+    }
     return false
   }
 
@@ -1593,26 +2229,57 @@ function App() {
       )}
 
       {screen === 'stageSelect' && (
-        <div className="screen">
+        <div className={`screen stage-select-screen ${estimateMode ? 'estimate-stage-select' : ''}`}>
           <h1>ステージ選択</h1>
           <p>遊ぶステージを選んでください</p>
 
+          <section className="stage-mode-selector" aria-label="プレイモード選択">
+            <div>
+              <button
+                type="button"
+                aria-pressed={!estimateMode}
+                className={!estimateMode ? 'active' : ''}
+                onClick={() => setEstimateMode(false)}
+              >
+                通常モード
+              </button>
+              <button
+                type="button"
+                aria-pressed={estimateMode}
+                className={estimateMode ? 'active' : ''}
+                onClick={() => setEstimateMode(true)}
+              >
+                見積もりモード
+              </button>
+            </div>
+            <p>
+              {estimateMode
+                ? '時間を予想してから出発し、あとで答え合わせします。'
+                : '予想時間を確認しながらレールを配置します。'}
+            </p>
+          </section>
+
           <div className="stage-list">
             {STAGE_ORDER.map((stageNumber) => {
-              const stage = STAGES[stageNumber]
-              const stageResult = stageResults[stageNumber]
-
+              const stageId =
+                stageNumber === 'tutorial' && estimateMode
+                  ? 'estimateTutorial'
+                  : stageNumber
+              const stage = STAGES[stageId]
+              const stageResult =
+                stageResults[getStageResultKey(stageId, estimateMode)]
+              const stageCleared = isStageCleared(stage, stageResult)
               return (
                 <button
                   key={stageNumber}
-                  className={`${stage.isTutorial ? 'tutorial-stage-card' : ''} ${stageResult ? 'completed-stage-card' : ''}`}
-                  onClick={() => startStage(stageNumber)}
+                  className={`${stage.isTutorial ? 'tutorial-stage-card' : ''} ${stageCleared ? 'completed-stage-card' : ''} ${stageResult && Math.abs(stageResult.difference) >= EXACT_TIME_TOLERANCE ? 'off-time-stage-card' : ''}`}
+                  onClick={() => startStage(stageId)}
                 >
                   <span>{stage.badge ?? stageNumber}</span>
                   <small>{stage.description}</small>
                   {stageResult && (
                     <em className="stage-result-mark">
-                      {getStageResultLabel(stageResult)}
+                      {getStageResultLabel(stage, stageResult)}
                     </em>
                   )}
                 </button>
@@ -1627,11 +2294,25 @@ function App() {
       )}
 
       {screen === 'game' && currentStage && (
-        <div className="screen game-screen">
+        <div className={`screen game-screen ${estimateMode ? 'estimate-mode' : ''} ${tutorialStep ? 'tutorial-active' : ''}`}>
           <div className="game-header">
-            <button disabled={Boolean(trainRun)} onClick={() => setScreen('title')}>🏠</button>
+            <button
+              aria-label="タイトルへ戻る"
+              title="タイトルへ戻る"
+              disabled={Boolean(trainRun)}
+              onClick={() => setScreen('title')}
+            >
+              🏠
+            </button>
             <h2>{currentStage.title}</h2>
-            <button disabled={Boolean(trainRun)} onClick={() => setScreen('stageSelect')}>↩</button>
+            <button
+              aria-label="ステージ一覧を開く"
+              title="ステージ一覧"
+              disabled={Boolean(trainRun)}
+              onClick={() => setScreen('stageSelect')}
+            >
+              <StageListIcon />
+            </button>
           </div>
 
           <p className="target-time">目標時間：{currentStage.targetTime}秒</p>
@@ -1641,18 +2322,25 @@ function App() {
             {currentStage.turnaroundPoints?.length > 0 && (
               <span>折り返し地点を通過する</span>
             )}
-            <span>目標時間：{currentStage.targetTime}秒</span>
+            <span>
+              クリア条件：{getClearCondition(currentStage) === 'within'
+                ? '時間以内でゴールする'
+                : '時間ぴったりでゴールする'}
+            </span>
           </div>
 
           {tutorialStep && (
             <section className="tutorial-guide" aria-live="polite">
               <div className="tutorial-guide-heading">
-                <span>操作 {tutorialStep} / 4</span>
+                <span>操作 {tutorialStep} / {tutorialTotalSteps}</span>
                 <h3>{tutorialInstructions[tutorialStep].title}</h3>
               </div>
               <p>{tutorialInstructions[tutorialStep].body}</p>
               <div className="tutorial-progress" aria-hidden="true">
-                {[1, 2, 3, 4].map((step) => (
+                {Array.from(
+                  { length: tutorialTotalSteps },
+                  (_, index) => index + 1,
+                ).map((step) => (
                   <span
                     key={step}
                     className={step <= tutorialStep ? 'active' : ''}
@@ -1685,7 +2373,11 @@ function App() {
               ))}
               <button
                 className="clear-rails-button"
-                disabled={placedRails.length === 0 || Boolean(trainRun)}
+                disabled={
+                  placedRails.length === 0 ||
+                  Boolean(trainRun) ||
+                  Boolean(tutorialStep)
+                }
                 onClick={() => {
                   setPlacedRails([])
                   setMessage('')
@@ -1697,16 +2389,26 @@ function App() {
 
             <p className="rail-selection-description">
               選択中：{RAIL_TYPES[selectedRailType].description}
+              {selectedRailType === 'slow' && '・ドラッグで連続配置できます'}
+              {selectedRailType === 'fast' &&
+                (currentStage.slowZoneRadius ||
+                  currentStage.relayRequiresSlowApproach) &&
+                '・「のんびり」のマスでは1マスを1秒で進みます'}
             </p>
+
           </div>
 
           <div
             ref={mapRef}
-            className={`grid-map ${trainRun ? 'train-running' : ''}`}
+            className={`grid-map ${trainRun ? 'train-running' : ''} ${selectedRailType === 'slow' && !trainRun ? 'slow-drag-enabled' : ''}`}
             style={{
               gridTemplateColumns: `repeat(${currentStage.width}, 1fr)`,
               width: `min(100%, ${(currentStage.width / currentStage.height) * 78}vh)`,
             }}
+            onPointerDown={startSlowRailDrag}
+            onPointerMove={continueSlowRailDrag}
+            onPointerUp={finishSlowRailDrag}
+            onPointerCancel={cancelSlowRailDrag}
           >
             {Array.from({ length: currentStage.height }).map((_, y) =>
               Array.from({ length: currentStage.width }).map((__, x) => {
@@ -1718,6 +2420,10 @@ function App() {
                 const obstacle = getObstacleAt({ x, y })
                 const isCongestion = Boolean(getCongestionAt({ x, y }))
                 const isTurnaround = Boolean(getTurnaroundPointAt({ x, y }))
+                const isFastRailLimited =
+                  rail?.type === 'fast' &&
+                  (isSlowZonePosition({ x, y }) ||
+                    isRelayConnectionPosition({ x, y }))
                 const isLowSpeedRequired =
                   !isStart &&
                   !isRelay &&
@@ -1728,6 +2434,9 @@ function App() {
                 const isShortestRoute = visibleRoute?.positions.some((position) =>
                   isSamePosition({ x, y }, position),
                 )
+                const mapSegmentTimeLabel =
+                  mapSegmentTimeLabelByPosition.get(positionToKey({ x, y }))
+                const isTutorialTarget = isTutorialTargetCell(x, y)
                 const cellLabel = isStart
                   ? 'スタート'
                   : isGoal
@@ -1739,7 +2448,7 @@ function App() {
                         : isTurnaround
                           ? `折り返し地点 ${x + 1}列 ${y + 1}行`
                       : rail
-                        ? `${isCongestion ? '混雑区画 ' : ''}${RAIL_TYPES[rail.type].label} ${x + 1}列 ${y + 1}行`
+                        ? `${isCongestion ? '混雑区画 ' : ''}${RAIL_TYPES[rail.type].label}${isFastRailLimited ? ' のんびり扱い' : ''} ${x + 1}列 ${y + 1}行`
                         : `${isCongestion ? '混雑区画 ' : ''}空きマス ${x + 1}列 ${y + 1}行`
 
                 return (
@@ -1747,11 +2456,27 @@ function App() {
                     key={`${x}-${y}`}
                     data-cell-key={`${x}-${y}`}
                     aria-label={cellLabel}
-                    disabled={Boolean(trainRun) || Boolean(obstacle)}
-                    className={`map-cell ${rail ? `rail-${rail.type}` : ''} ${isStart ? 'start-cell' : ''} ${isGoal ? 'goal-cell' : ''} ${isRelay ? 'relay-cell' : ''} ${isTurnaround ? 'turnaround-cell' : ''} ${obstacle ? `obstacle-cell obstacle-cell-${obstacle.type}` : ''} ${isCongestion ? 'congestion-cell' : ''} ${isLowSpeedRequired ? 'low-speed-required-cell' : ''} ${isShortestRoute ? 'shortest-route-cell' : ''} ${isTutorialTargetCell(x, y) ? 'tutorial-target-cell' : ''}`}
-                    onClick={() => toggleRail(x, y)}
+                    disabled={
+                      Boolean(trainRun) ||
+                      Boolean(obstacle) ||
+                      Boolean(
+                        tutorialStep &&
+                          (tutorialStep > 4 || !isTutorialTarget),
+                      )
+                    }
+                    className={`map-cell ${rail ? `rail-${rail.type}` : ''} ${isFastRailLimited ? 'rail-fast-limited' : ''} ${isStart ? 'start-cell' : ''} ${isGoal ? 'goal-cell' : ''} ${isRelay ? 'relay-cell' : ''} ${isTurnaround ? 'turnaround-cell' : ''} ${obstacle ? `obstacle-cell obstacle-cell-${obstacle.type}` : ''} ${isCongestion ? 'congestion-cell' : ''} ${isLowSpeedRequired ? 'low-speed-required-cell' : ''} ${isShortestRoute ? 'shortest-route-cell' : ''} ${isTutorialTarget ? 'tutorial-target-cell' : ''}`}
+                    onClick={(event) => {
+                      if (selectedRailType === 'slow' && event.detail !== 0) return
+                      toggleRail(x, y)
+                    }}
                   >
                     {renderCell(x, y, visibleRoute)}
+                    {shouldRevealEstimate && mapSegmentTimeLabel && (
+                      <span className="map-segment-time-label" aria-hidden="true">
+                        <small>{mapSegmentTimeLabel.label}</small>
+                        <strong>{mapSegmentTimeLabel.time.toFixed(1)}秒</strong>
+                      </span>
+                    )}
                   </button>
                 )
               })
@@ -1778,6 +2503,7 @@ function App() {
             {trainRun && (
               <svg
                 key={trainRun.id}
+                ref={trainMotionLayerRef}
                 className="train-motion-layer"
                 viewBox={`0 0 ${trainRun.motion.width} ${trainRun.motion.height}`}
                 preserveAspectRatio="none"
@@ -1797,63 +2523,85 @@ function App() {
             )}
           </div>
 
-          <div className={`time-panel time-panel-${timePanelStatus}`} aria-live="polite">
-            <span className="time-panel-label">予想時間</span>
-            <span className="time-panel-scope">
-              {shortestRoute
-                ? 'ゴールまで'
-                : connectedRelayRoute
-                  ? `中継地点${connectedRelayRoute.relayNumber}まで`
-                  : getRelayCells().length > 0
-                    ? '中継地点まで'
-                    : 'ゴールまで'}
-            </span>
-            <strong>
-              {shortestRoute
-                ? `${shortestRoute.time.toFixed(1)}秒`
-                : connectedRelayRoute
-                  ? `${connectedRelayRoute.route.time.toFixed(1)}秒`
-                  : '未接続'}
-            </strong>
-            {visibleRouteSegments.length > 0 && (
-              <div className="route-segment-times">
-                {visibleRouteSegments.map((segment) => (
-                  <span key={segment.label}>
-                    <small>{segment.label}</small>
-                    <b>{segment.time.toFixed(1)}秒</b>
-                  </span>
-                ))}
-              </div>
+          <div
+            className={`time-panel time-panel-${shouldRevealEstimate ? timePanelStatus : 'waiting'}`}
+            aria-live="polite"
+          >
+            {shouldRevealEstimate ? (
+              <>
+                <span className="time-panel-label">予想時間</span>
+                <span className="time-panel-scope">
+                  {shortestRoute
+                    ? 'ゴールまで'
+                    : connectedRelayRoute
+                      ? `中継地点${connectedRelayRoute.relayNumber}まで`
+                      : getRelayCells().length > 0
+                        ? '中継地点まで'
+                        : 'ゴールまで'}
+                </span>
+                <strong>
+                  {shortestRoute
+                    ? `${shortestRoute.time.toFixed(1)}秒`
+                    : connectedRelayRoute
+                      ? `${connectedRelayRoute.route.time.toFixed(1)}秒`
+                      : '未接続'}
+                </strong>
+                {visibleRouteSegments.length > 0 && (
+                  <div className="route-segment-times">
+                    {visibleRouteSegments.map((segment) => (
+                      <span key={segment.label}>
+                        <small>{segment.label}</small>
+                        <b>{segment.time.toFixed(1)}秒</b>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <small className="time-panel-note">
+                  {shortestRoute
+                    ? `最短経路 ${shortestRouteRailCount}マス / 目標 ${currentStage.targetTime}秒`
+                    : connectedRelayRoute
+                      ? `ここまで ${visibleRouteRailCount}マス。ゴールまでつなげると最終予想時間に変わります。`
+                      : getRelayCells().length > 0
+                        ? 'まずはスタートから中継地点までレールをつなげてください。'
+                        : 'スタートからゴールまでレールをつなげると表示されます。'}
+                </small>
+              </>
+            ) : (
+              <>
+                <span className="time-panel-label">見積もりモード</span>
+                <span className="time-panel-scope">出発後に答え合わせ</span>
+                <strong>？？？</strong>
+                <small className="time-panel-note">
+                  区間時間と最終予想時間は、出発するまで表示されません。
+                </small>
+              </>
             )}
-            <small className="time-panel-note">
-              {shortestRoute
-                ? `最短経路 ${shortestRouteRailCount}マス / 目標 ${currentStage.targetTime}秒`
-                : connectedRelayRoute
-                  ? `ここまで ${visibleRouteRailCount}マス。ゴールまでつなげると最終予想時間に変わります。`
-                  : getRelayCells().length > 0
-                    ? 'まずはスタートから中継地点までレールをつなげてください。'
-                    : 'スタートからゴールまでレールをつなげると表示されます。'}
-            </small>
           </div>
 
-          <div className="rail-info">
-            <p>S：スタート</p>
-            <p>G：ゴール</p>
-            <p>中：中継地点</p>
-            <p>配置したレール数：{placedRails.length}マス</p>
-            <p>
-              表示中の経路：
-              {visibleRoute ? `${visibleRouteRailCount}マス` : '未接続'}
-            </p>
+          <div className="rail-info" aria-label="マップの凡例">
+            <span className="rail-info-item">
+              <img src={redStationBuildingImage} alt="" aria-hidden="true" />
+              <span>スタート</span>
+            </span>
+            <span className="rail-info-item">
+              <img src={stationBuildingImage} alt="" aria-hidden="true" />
+              <span>ゴール</span>
+            </span>
+            <span className="rail-info-item">
+              <img src={tunnelEntranceRailLeftImage} alt="" aria-hidden="true" />
+              <span>中継地点</span>
+            </span>
+            <span className="rail-info-item">
+              <img src={straightRailImage} alt="" aria-hidden="true" />
+              <span>配置 {placedRails.length}マス</span>
+            </span>
+            <span className="rail-info-item rail-info-route">
+              <img src={straightRailImage} alt="" aria-hidden="true" />
+              <span>
+                経路 {visibleRoute ? `${visibleRouteRailCount}マス` : '未接続'}
+              </span>
+            </span>
           </div>
-
-          <p className="route-hint">
-            {shortestRoute
-              ? '予想時間には、黄色で示した最短経路上のレールだけが含まれます。'
-              : connectedRelayRoute
-                ? '黄色の経路は、現在つながっている中継地点までのルートです。'
-                : '黄色の経路が表示されたら、時間もここに表示されます。'}
-          </p>
 
           {trainRun && (
             <p className="train-status" aria-live="polite">
@@ -1864,28 +2612,181 @@ function App() {
 
           {message && <p className="game-message">{message}</p>}
 
+          {estimateMode && (
+            <section
+              className={`estimate-memo ${currentStage.isEstimateTutorial && tutorialStep === 5 ? 'tutorial-control-highlight' : ''}`}
+              aria-label="見積もりメモ"
+            >
+              <div className="estimate-memo-heading">
+                <h3>見積もりメモ</h3>
+                <span>{estimateRevealed ? '実績' : '入力'}</span>
+              </div>
+
+              <div className="estimate-memo-fields">
+                {ESTIMATE_MEMO_FIELDS.map((field) => (
+                  <label key={field.key}>
+                    <span>{field.label}</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      max="99"
+                      step="1"
+                      value={estimateMemo[field.key]}
+                      disabled={
+                        estimateRevealed ||
+                        (currentStage.isEstimateTutorial && tutorialStep !== 5)
+                      }
+                      onChange={(event) => {
+                        setEstimateMemo((memo) => ({
+                          ...memo,
+                          [field.key]: getBoundedInputValue(
+                            event.target.value,
+                            true,
+                          ),
+                        }))
+                      }}
+                    />
+                    {estimateRevealed && revealedEstimateBreakdown && (
+                      <small>
+                        {revealedEstimateBreakdown[field.key].count}マス・
+                        {revealedEstimateBreakdown[field.key].time.toFixed(1)}秒
+                      </small>
+                    )}
+                  </label>
+                ))}
+              </div>
+
+              <label
+                className={`user-time-estimate ${currentStage.isEstimateTutorial && tutorialStep === 6 ? 'tutorial-control-highlight' : ''}`}
+              >
+                <span>自分の予想</span>
+                <span className="user-time-estimate-input">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    max="99"
+                    step="0.5"
+                    value={userEstimatedTime}
+                    disabled={
+                      estimateRevealed ||
+                      (currentStage.isEstimateTutorial && tutorialStep !== 6)
+                    }
+                    onChange={(event) =>
+                      setUserEstimatedTime(
+                        getBoundedInputValue(event.target.value),
+                      )
+                    }
+                  />
+                  秒
+                </span>
+              </label>
+            </section>
+          )}
+
           <button
-            className={`main-button ${tutorialStep === 4 ? 'tutorial-departure-button' : ''}`}
-            disabled={Boolean(trainRun)}
-            onClick={startTrain}
+            className={`main-button ${tutorialStep === tutorialTotalSteps ? 'tutorial-departure-button' : ''}`}
+            disabled={
+              Boolean(tutorialStep && tutorialStep !== tutorialTotalSteps)
+            }
+            onClick={trainRun ? toggleTrainSpeed : startTrain}
+            aria-pressed={trainRun ? trainRun.playbackRate === 2 : undefined}
+            aria-label={
+              trainRun
+                ? `2倍速を${trainRun.playbackRate === 2 ? 'OFF' : 'ON'}にする`
+                : undefined
+            }
           >
-            {trainRun ? '走行中...' : '出発'}
+            {trainRun
+              ? `2倍速：${trainRun.playbackRate === 2 ? 'ON' : 'OFF'}`
+              : '出発'}
           </button>
         </div>
       )}
 
       {screen === 'result' && result && (
         <div className="screen result-screen">
-          <div className="result-box">
+          <div className={`result-box ${result.estimate ? 'result-box-estimate' : ''}`}>
             <h1>リザルト</h1>
+            <p>
+              クリア条件：{result.clearCondition === 'within'
+                ? '目標時間以内'
+                : '目標時間ぴったり'}
+            </p>
             <p>目標：{result.targetTime}秒</p>
             <p>実際：{result.actualTime.toFixed(1)}秒</p>
             <p>{getResultMessage()}</p>
+            {result.fastRailSavingsAwarded && (
+              <p className="fast-rail-saving-feedback">
+                {getFastRailSavingsMessage({
+                  savingsAwarded: result.fastRailSavingsAwarded,
+                  savedHighSpeedRails: result.remainingFastRails,
+                })}
+              </p>
+            )}
+
+            {result.estimate && (
+              <section className="estimate-result">
+                <h2>見積もりの答え合わせ</h2>
+                <div className="estimate-result-summary">
+                  <span>自分の予想 <strong>{result.estimate.userTime.toFixed(1)}秒</strong></span>
+                  <span>計算結果 <strong>{result.actualTime.toFixed(1)}秒</strong></span>
+                  <span>
+                    予想との差{' '}
+                    <strong>
+                      {Math.abs(result.estimate.userTime - result.actualTime).toFixed(1)}秒
+                    </strong>
+                  </span>
+                </div>
+
+                {result.estimate.segments.length > 0 && (
+                  <div className="estimate-result-segments">
+                    {result.estimate.segments.map((segment) => (
+                      <span key={segment.label}>
+                        {segment.label}：{segment.time.toFixed(1)}秒
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="estimate-result-breakdown">
+                  {ESTIMATE_MEMO_FIELDS.map((field) => (
+                    <div key={field.key}>
+                      <strong>{field.label}</strong>
+                      <span>メモ {result.estimate.memo[field.key]}マス</span>
+                      <span>
+                        実際 {result.estimate.breakdown[field.key].count}マス・
+                        {result.estimate.breakdown[field.key].time.toFixed(1)}秒
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <div className="result-buttons">
-              <button onClick={() => setScreen('title')}>🏠</button>
-              <button onClick={() => setScreen('game')}>↩</button>
-              <button onClick={() => setScreen('stageSelect')}>▶</button>
+              <button
+                aria-label="タイトルへ戻る"
+                title="タイトルへ戻る"
+                onClick={() => setScreen('title')}
+              >
+                🏠
+              </button>
+              <button
+                aria-label="このステージをもう一度遊ぶ"
+                title="もう一度遊ぶ"
+                onClick={() => startStage(selectedStage)}
+              >
+                ↻
+              </button>
+              <button
+                aria-label="ステージ一覧を開く"
+                title="ステージ一覧"
+                onClick={() => setScreen('stageSelect')}
+              >
+                <StageListIcon />
+              </button>
             </div>
           </div>
         </div>

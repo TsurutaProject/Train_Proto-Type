@@ -4,8 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test": "node --test src/fastRailSavings.test.js",
     "dev": "vite",
     "build": "vite build",
+    "audit:stages": "node scripts/audit-stage-routes.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
