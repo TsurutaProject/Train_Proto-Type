@@ -8,6 +8,7 @@ import {
 import blueTrainLeftImage from './assets/train-game/blue-train-left.png'
 import blueTrainRightImage from './assets/train-game/blue-train-right.png'
 import curvedRailImage from './assets/train-game/curved-rail.png'
+import leverImage from './assets/train-game/lever.png'
 import obstacleRockImage from './assets/train-game/obstacle-rock.png'
 import obstacleTreeImage from './assets/train-game/obstacle-tree.png'
 import redStationBuildingImage from './assets/train-game/red-station-building.png'
@@ -673,11 +674,13 @@ function ObstacleAsset({ type }) {
   )
 }
 
-function TurnaroundAsset() {
+function TurnaroundAsset({ flipped = false }) {
   return (
-    <span className="turnaround-asset" aria-hidden="true">
-      <strong>↩</strong>
-      <small>折返</small>
+    <span
+      className={`turnaround-asset ${flipped ? 'turnaround-asset-flipped' : ''}`}
+      aria-hidden="true"
+    >
+      <img src={leverImage} alt="" />
     </span>
   )
 }
@@ -1851,10 +1854,20 @@ function App() {
     }
 
     if (getTurnaroundPointAt(position)) {
+      const turnaroundPassOrder = trainRun
+        ? trainRun.route.positions
+          .filter((routePosition) => getTurnaroundPointAt(routePosition))
+          .findIndex((routePosition) =>
+            isSamePosition(routePosition, position),
+          ) + 1
+        : 0
+      const hasPassedTurnaround =
+        turnaroundPassOrder > 0 && routePhase >= turnaroundPassOrder
+
       return (
         <span className="special-cell-content">
           {isOnRoute && renderRouteRail('station', false)}
-          <TurnaroundAsset />
+          <TurnaroundAsset flipped={hasPassedTurnaround} />
         </span>
       )
     }
@@ -2323,7 +2336,7 @@ function App() {
               <span>折り返し地点を通過する</span>
             )}
             <span>
-              クリア条件：{getClearCondition(currentStage) === 'within'
+              {getClearCondition(currentStage) === 'within'
                 ? '時間以内でゴールする'
                 : '時間ぴったりでゴールする'}
             </span>
