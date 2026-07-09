@@ -78,6 +78,7 @@ const STAGES = {
   2: {
     title: 'ステージ2',
     description: '速さの違うレールを使ってみよう',
+    isFastRailTutorial: true,
     targetTime: 5,
     width: 8,
     height: 8,
@@ -2124,21 +2125,59 @@ function App() {
     return () => window.cancelAnimationFrame(frame)
   }, [placedRails, screen, selectedStage, trainRun, visibleRouteSignature])
 
+  const isFastRailTutorialActive =
+    Boolean(currentStage?.isFastRailTutorial) && !estimateMode
+  const isGuidedTutorialActive =
+    Boolean(currentStage?.isTutorial) || isFastRailTutorialActive
   const tutorialFirstRail = currentStage?.isTutorial
     ? getRailAt(1, currentStage.start.y)
     : null
   const tutorialExitRail = currentStage?.isTutorial
     ? getRailAt(5, currentStage.start.y)
     : null
+  const fastRailTutorialFirstSlowComplete =
+    isFastRailTutorialActive &&
+    getRailAt(1, currentStage.start.y)?.type === 'slow'
+  const fastRailTutorialFirstFastComplete =
+    isFastRailTutorialActive &&
+    getRailAt(2, currentStage.start.y)?.type === 'fast'
+  const fastRailTutorialSecondFastComplete =
+    isFastRailTutorialActive &&
+    getRailAt(3, currentStage.start.y)?.type === 'fast'
+  const fastRailTutorialTailComplete =
+    isFastRailTutorialActive &&
+    [4, 5, 6].every(
+      (x) => getRailAt(x, currentStage.start.y)?.type === 'slow',
+    )
   const estimateTutorialMemoComplete =
     estimateMemo.slowRails === '4' &&
     estimateMemo.fastRails === '0' &&
     estimateMemo.congestionPasses === '0' &&
     estimateMemo.repeatedCells === '0'
-  const tutorialTotalSteps = currentStage?.isEstimateTutorial ? 7 : 5
-  const tutorialStep = trainRun || !currentStage?.isTutorial
+  const tutorialTotalSteps =
+    currentStage?.isEstimateTutorial || isFastRailTutorialActive ? 7 : 5
+  const fastRailTutorialStep = !isFastRailTutorialActive
     ? null
-    : shortestRoute
+    : !fastRailTutorialFirstSlowComplete
+      ? 1
+      : (!fastRailTutorialFirstFastComplete ||
+          !fastRailTutorialSecondFastComplete) &&
+        selectedRailType !== 'fast'
+        ? 2
+        : !fastRailTutorialFirstFastComplete
+          ? 3
+          : !fastRailTutorialSecondFastComplete
+            ? 4
+            : !fastRailTutorialTailComplete && selectedRailType !== 'slow'
+              ? 5
+              : !fastRailTutorialTailComplete || !shortestRoute
+                ? 6
+                : 7
+  const tutorialStep = trainRun || !isGuidedTutorialActive
+    ? null
+    : isFastRailTutorialActive
+      ? fastRailTutorialStep
+      : shortestRoute
       ? currentStage.isEstimateTutorial
         ? userEstimatedTime === '4'
           ? 7
@@ -2175,6 +2214,36 @@ function App() {
       body: 'ゴールまでつながりました。予想時間を確認して「出発」を押してください。',
     },
   }
+  const fastRailTutorialInstructions = {
+    1: {
+      title: 'まずは低速レールを置こう',
+      body: '低速レールは選択済みです。スタートの右にある、黄色い枠の空きマスを押してください。',
+    },
+    2: {
+      title: '高速レールに切り替えよう',
+      body: 'レール選択の「高速レール」を押してください。高速レールは1マスを0.5秒で進みます。',
+    },
+    3: {
+      title: '高速レールを置こう',
+      body: '黄色い枠のマスを押して、高速レールを1本置いてください。',
+    },
+    4: {
+      title: 'もう1本高速レールを置こう',
+      body: '続けて黄色い枠のマスに高速レールを置き、目標時間に近づけましょう。',
+    },
+    5: {
+      title: '低速レールに戻そう',
+      body: 'レール選択の「低速レール」を押してください。必要な場所だけ高速にする練習です。',
+    },
+    6: {
+      title: 'ゴールまでつなごう',
+      body: '黄色い枠の3マスを低速レールでつなげてください。ドラッグでまとめて配置できます。',
+    },
+    7: {
+      title: '準備完了！ 出発しよう',
+      body: '低速と高速を切り替えて、5秒のルートができました。「出発」を押してください。',
+    },
+  }
   const estimateTutorialInstructions = {
     1: {
       title: '低速レールを置こう',
@@ -2207,10 +2276,36 @@ function App() {
   }
   const tutorialInstructions = currentStage?.isEstimateTutorial
     ? estimateTutorialInstructions
+    : isFastRailTutorialActive
+      ? fastRailTutorialInstructions
     : standardTutorialInstructions
+  const tutorialRequiredRailType = isFastRailTutorialActive
+    ? tutorialStep === 2 || tutorialStep === 3 || tutorialStep === 4
+      ? 'fast'
+      : tutorialStep === 1 || tutorialStep === 5 || tutorialStep === 6
+        ? 'slow'
+        : null
+    : null
+  const tutorialRailControlTarget = isFastRailTutorialActive
+    ? tutorialStep === 2
+      ? 'fast'
+      : tutorialStep === 5
+        ? 'slow'
+        : null
+    : null
 
   const isTutorialTargetCell = (x, y) => {
     if (!tutorialStep) return false
+
+    if (isFastRailTutorialActive) {
+      if (tutorialStep === 1) return x === 1 && y === currentStage.start.y
+      if (tutorialStep === 3) return x === 2 && y === currentStage.start.y
+      if (tutorialStep === 4) return x === 3 && y === currentStage.start.y
+      if (tutorialStep === 6) {
+        return x >= 4 && x <= 6 && y === currentStage.start.y
+      }
+      return false
+    }
 
     if (tutorialStep === 1) return x === 1 && y === currentStage.start.y
     if (tutorialStep === 2) return x === 2 && y === currentStage.start.y
@@ -2367,8 +2462,14 @@ function App() {
               {currentStage.availableRails.map((railType) => (
                 <button
                   key={railType}
-                  className={`rail-card ${selectedRailType === railType ? 'selected' : ''}`}
-                  disabled={Boolean(trainRun)}
+                  className={`rail-card ${selectedRailType === railType ? 'selected' : ''} ${tutorialRailControlTarget === railType ? 'tutorial-control-highlight' : ''}`}
+                  disabled={
+                    Boolean(trainRun) ||
+                    Boolean(
+                      tutorialRequiredRailType &&
+                        tutorialRequiredRailType !== railType,
+                    )
+                  }
                   onClick={() => setSelectedRailType(railType)}
                   aria-pressed={selectedRailType === railType}
                 >
@@ -2467,10 +2568,7 @@ function App() {
                     disabled={
                       Boolean(trainRun) ||
                       Boolean(obstacle) ||
-                      Boolean(
-                        tutorialStep &&
-                          (tutorialStep > 4 || !isTutorialTarget),
-                      )
+                      Boolean(tutorialStep && !isTutorialTarget)
                     }
                     className={`map-cell ${rail ? `rail-${rail.type}` : ''} ${isFastRailLimited ? 'rail-fast-limited' : ''} ${isStart ? 'start-cell' : ''} ${isGoal ? 'goal-cell' : ''} ${isRelay ? 'relay-cell' : ''} ${isTurnaround ? 'turnaround-cell' : ''} ${obstacle ? `obstacle-cell obstacle-cell-${obstacle.type}` : ''} ${isCongestion ? 'congestion-cell' : ''} ${isLowSpeedRequired ? 'low-speed-required-cell' : ''} ${isShortestRoute ? 'shortest-route-cell' : ''} ${isTutorialTarget ? 'tutorial-target-cell' : ''}`}
                     onClick={(event) => {
