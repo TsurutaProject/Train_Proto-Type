@@ -2230,11 +2230,6 @@ function App() {
         <div className="screen title-screen">
           <h1>時間ぴったりトレイン</h1>
 
-          <label className="player-label">
-            番号
-            <input type="text" className="player-input" />
-          </label>
-
           <button className="main-button" onClick={() => setScreen('stageSelect')}>
             START
           </button>
@@ -2604,6 +2599,12 @@ function App() {
               <img src={tunnelEntranceRailLeftImage} alt="" aria-hidden="true" />
               <span>中継地点</span>
             </span>
+            {currentStage.turnaroundPoints?.length > 0 && (
+              <span className="rail-info-item">
+                <img src={leverImage} alt="" aria-hidden="true" />
+                <span>折り返し地点</span>
+              </span>
+            )}
             <span className="rail-info-item">
               <img src={straightRailImage} alt="" aria-hidden="true" />
               <span>配置 {placedRails.length}マス</span>
