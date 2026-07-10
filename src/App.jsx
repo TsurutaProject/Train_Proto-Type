@@ -3,6 +3,7 @@ import './App.css'
 import {
   getFastRailSavings,
   getFastRailSavingsMessage,
+  getFastRailSavingsRank,
   isWithinTargetTime,
 } from './fastRailSavings.js'
 import blueTrainLeftImage from './assets/train-game/blue-train-left.png'
@@ -87,6 +88,7 @@ const STAGES = {
     relayGroups: [],
     availableRails: ['slow', 'fast'],
     maxFastRails: 6,
+    minimumRequiredFastRails: 2,
     clearCondition: 'within',
     enableFastRailSaving: true,
   },
@@ -127,6 +129,7 @@ const STAGES = {
     ],
     availableRails: ['slow', 'fast'],
     maxFastRails: 8,
+    minimumRequiredFastRails: 6,
     clearCondition: 'within',
     enableFastRailSaving: true,
   },
@@ -172,6 +175,7 @@ const STAGES = {
     obstacles: [],
     availableRails: ['slow', 'fast'],
     maxFastRails: 6,
+    minimumRequiredFastRails: 2,
     relayRequiresSlowApproach: true,
     clearCondition: 'within',
     enableFastRailSaving: true,
@@ -195,6 +199,7 @@ const STAGES = {
     obstacles: [{ x: 7, y: 2, type: 'rock' }],
     availableRails: ['slow', 'fast'],
     maxFastRails: 3,
+    minimumRequiredFastRails: 3,
     relayRequiresSlowApproach: true,
     clearCondition: 'within',
   },
@@ -250,6 +255,7 @@ const STAGES = {
     obstacles: [],
     availableRails: ['slow', 'fast'],
     maxFastRails: 10,
+    minimumRequiredFastRails: 9,
     slowZoneRadius: 3,
     clearCondition: 'within',
     enableFastRailSaving: true,
@@ -315,6 +321,7 @@ const STAGES = {
     ],
     availableRails: ['slow', 'fast'],
     maxFastRails: 4,
+    minimumRequiredFastRails: 4,
     relayRequiresSlowApproach: true,
     slowZoneRadius: 3,
     clearCondition: 'within',
@@ -410,6 +417,7 @@ const STAGES = {
     ],
     availableRails: ['slow', 'fast'],
     maxFastRails: 5,
+    minimumRequiredFastRails: 5,
     relayRequiresSlowApproach: true,
     clearCondition: 'within',
   },
@@ -550,6 +558,14 @@ const getStageResultLabel = (stage, stageResult) => {
   const seconds = Math.abs(stageResult.difference).toFixed(1)
   return `${seconds}秒${stageResult.difference > 0 ? '早く' : 'ゆっくり'}できそう`
 }
+
+const getStageClearConditionIcon = (stage) =>
+  getClearCondition(stage) === 'within' ? '⌛' : '🕘'
+
+const getStageFastRailBonusMark = (stage, stageResult) =>
+  getClearCondition(stage) === 'within' && isStageCleared(stage, stageResult)
+    ? stageResult.fastRailSavingsMark
+    : ''
 
 const getStageResultKey = (stageId, isEstimateMode) => {
   const normalizedStageId = stageId === 'estimateTutorial' ? 'tutorial' : stageId
@@ -743,6 +759,7 @@ function App() {
   const [estimateRevealed, setEstimateRevealed] = useState(false)
   const [userEstimatedTime, setUserEstimatedTime] = useState('')
   const [estimateMemo, setEstimateMemo] = useState(EMPTY_ESTIMATE_MEMO)
+  const [tutorialSkipped, setTutorialSkipped] = useState(false)
   const mapRef = useRef(null)
   const trainMotionLayerRef = useRef(null)
   const trainRunIdRef = useRef(0)
@@ -775,6 +792,7 @@ function App() {
     setEstimateRevealed(false)
     setUserEstimatedTime('')
     setEstimateMemo(EMPTY_ESTIMATE_MEMO)
+    setTutorialSkipped(false)
     setScreen('game')
   }
 
@@ -1562,12 +1580,22 @@ function App() {
 
             if (
               previousCleared &&
-              trainRun.result.cleared &&
-              trainRun.result.fastRailSavingsEligible
+              trainRun.result.cleared
             ) {
-              const previousRemaining = previousResult.remainingFastRails ?? -1
-              const nextRemaining = trainRun.result.remainingFastRails ?? -1
-              if (previousRemaining >= nextRemaining) return previousResults
+              const previousSavingsRank = getFastRailSavingsRank(
+                previousResult.fastRailSavingsRating,
+              )
+              const nextSavingsRank = getFastRailSavingsRank(
+                trainRun.result.fastRailSavingsRating,
+              )
+              if (previousSavingsRank > nextSavingsRank) return previousResults
+              if (
+                previousSavingsRank === nextSavingsRank &&
+                Math.abs(previousResult.difference) <=
+                  Math.abs(trainRun.result.difference)
+              ) {
+                return previousResults
+              }
             } else if (
               !trainRun.result.cleared &&
               Math.abs(previousResult.difference) <=
@@ -1717,9 +1745,10 @@ function App() {
       : Math.abs(difference) < EXACT_TIME_TOLERANCE
     const fastRailSavings = getFastRailSavings({
       maxHighSpeedRails: currentStage.maxFastRails,
+      minimumRequiredHighSpeedRails: currentStage.minimumRequiredFastRails,
       placedRails,
       cleared,
-      savingsEligible: currentStage.enableFastRailSaving,
+      savingsEligible: clearCondition === 'within',
     })
 
     const nextResult = {
@@ -1729,10 +1758,13 @@ function App() {
       clearCondition,
       cleared,
       maxFastRails: currentStage.maxFastRails ?? null,
+      minimumRequiredFastRails: fastRailSavings.minimumRequiredHighSpeedRails,
       placedFastRails: fastRailSavings.placedHighSpeedRails,
       remainingFastRails: fastRailSavings.savedHighSpeedRails,
+      fastRailSavingsRating: fastRailSavings.savingsRating,
+      fastRailSavingsMark: fastRailSavings.savingsMark,
       fastRailSavingsAwarded: fastRailSavings.savingsAwarded,
-      fastRailSavingsEligible: Boolean(currentStage.enableFastRailSaving),
+      fastRailSavingsEligible: clearCondition === 'within',
       estimate: estimateMode
         ? {
           userTime: parsedUserEstimatedTime,
@@ -1968,7 +2000,9 @@ function App() {
       .length ?? 0
   const currentFastRailSavings = getFastRailSavings({
     maxHighSpeedRails: currentStage?.maxFastRails,
+    minimumRequiredHighSpeedRails: currentStage?.minimumRequiredFastRails,
     placedRails,
+    savingsEligible: currentStage ? getClearCondition(currentStage) === 'within' : false,
   })
   const remainingFastRails = currentFastRailSavings.savedHighSpeedRails
   const getRouteSegmentTimes = (route) => {
@@ -2128,7 +2162,8 @@ function App() {
   const isFastRailTutorialActive =
     Boolean(currentStage?.isFastRailTutorial) && !estimateMode
   const isGuidedTutorialActive =
-    Boolean(currentStage?.isTutorial) || isFastRailTutorialActive
+    !tutorialSkipped &&
+    (Boolean(currentStage?.isTutorial) || isFastRailTutorialActive)
   const tutorialFirstRail = currentStage?.isTutorial
     ? getRailAt(1, currentStage.start.y)
     : null
@@ -2372,13 +2407,35 @@ function App() {
               const stageResult =
                 stageResults[getStageResultKey(stageId, estimateMode)]
               const stageCleared = isStageCleared(stage, stageResult)
+              const fastRailBonusMark = getStageFastRailBonusMark(
+                stage,
+                stageResult,
+              )
               return (
                 <button
                   key={stageNumber}
                   className={`${stage.isTutorial ? 'tutorial-stage-card' : ''} ${stageCleared ? 'completed-stage-card' : ''} ${stageResult && Math.abs(stageResult.difference) >= EXACT_TIME_TOLERANCE ? 'off-time-stage-card' : ''}`}
                   onClick={() => startStage(stageId)}
                 >
-                  <span>{stage.badge ?? stageNumber}</span>
+                  <span
+                    className="stage-condition-icon"
+                    aria-label={
+                      getClearCondition(stage) === 'within'
+                        ? '時間以内でゴールする'
+                        : '時間ぴったりでゴールする'
+                    }
+                  >
+                    {getStageClearConditionIcon(stage)}
+                  </span>
+                  {fastRailBonusMark && (
+                    <span
+                      className="stage-fast-rail-bonus-mark"
+                      aria-label={`追加評価 ${fastRailBonusMark}`}
+                    >
+                      {fastRailBonusMark}
+                    </span>
+                  )}
+                  <span className="stage-number">{stage.badge ?? stageNumber}</span>
                   <small>{stage.description}</small>
                   {stageResult && (
                     <em className="stage-result-mark">
@@ -2437,6 +2494,13 @@ function App() {
               <div className="tutorial-guide-heading">
                 <span>操作 {tutorialStep} / {tutorialTotalSteps}</span>
                 <h3>{tutorialInstructions[tutorialStep].title}</h3>
+                <button
+                  type="button"
+                  className="tutorial-skip-button"
+                  onClick={() => setTutorialSkipped(true)}
+                >
+                  スキップ
+                </button>
               </div>
               <p>{tutorialInstructions[tutorialStep].body}</p>
               <div className="tutorial-progress" aria-hidden="true">
@@ -2833,6 +2897,7 @@ function App() {
               <p className="fast-rail-saving-feedback">
                 {getFastRailSavingsMessage({
                   savingsAwarded: result.fastRailSavingsAwarded,
+                  savingsRating: result.fastRailSavingsRating,
                   savedHighSpeedRails: result.remainingFastRails,
                 })}
               </p>

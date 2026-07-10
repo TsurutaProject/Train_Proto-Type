@@ -4,6 +4,7 @@ import {
   countPlacedFastRails,
   getFastRailSavings,
   getFastRailSavingsMessage,
+  getFastRailSavingsRank,
   isWithinTargetTime,
 } from './fastRailSavings.js'
 
@@ -36,78 +37,113 @@ test('目標時間ぴったりと目標時間より早い到着をクリアに�
 test('上限4本をすべて配置したクリアでは節約評価を付けない', () => {
   const result = getFastRailSavings({
     maxHighSpeedRails: 4,
+    minimumRequiredHighSpeedRails: 2,
     placedRails: rails(4),
     cleared: isWithinTargetTime(5, 5),
     savingsEligible: true,
   })
 
-  assert.deepEqual(result, {
-    placedHighSpeedRails: 4,
-    savedHighSpeedRails: 0,
-    savingsAwarded: false,
-  })
+  assert.equal(result.placedHighSpeedRails, 4)
+  assert.equal(result.savedHighSpeedRails, 0)
+  assert.equal(result.savingsRating, null)
+  assert.equal(result.savingsMark, '')
+  assert.equal(result.savingsAwarded, false)
   assert.equal(getFastRailSavingsMessage(result), '')
 })
 
-test('上限4本のうち3本を配置したクリアでは残り1本を評価する', () => {
+test('最小本数ではないが余らせたクリアでは◎を評価する', () => {
   const result = getFastRailSavings({
     maxHighSpeedRails: 4,
+    minimumRequiredHighSpeedRails: 2,
     placedRails: rails(3),
     cleared: isWithinTargetTime(5, 5),
     savingsEligible: true,
   })
 
   assert.equal(result.savedHighSpeedRails, 1)
+  assert.equal(result.savingsRating, 'saved')
+  assert.equal(result.savingsMark, '◎')
   assert.equal(result.savingsAwarded, true)
-  assert.equal(getFastRailSavingsMessage(result), '節約成功！ 残り1本')
+  assert.equal(
+    getFastRailSavingsMessage(result),
+    '追加評価：◎ 高速レールを節約！ 残り1本',
+  )
 })
 
-test('上限4本のうち2本を配置したクリアでは残り2本を評価する', () => {
+test('最小本数でクリアした場合は☆を評価する', () => {
   const result = getFastRailSavings({
     maxHighSpeedRails: 4,
+    minimumRequiredHighSpeedRails: 2,
     placedRails: rails(2),
     cleared: isWithinTargetTime(4.5, 5),
     savingsEligible: true,
   })
 
   assert.equal(result.savedHighSpeedRails, 2)
+  assert.equal(result.savingsRating, 'minimum')
+  assert.equal(result.savingsMark, '☆')
   assert.equal(result.savingsAwarded, true)
+  assert.equal(
+    getFastRailSavingsMessage(result),
+    '追加評価：☆ 最小本数でクリア！',
+  )
+})
+
+test('上限すべてが最小本数のステージでは全使用でも☆を評価する', () => {
+  const result = getFastRailSavings({
+    maxHighSpeedRails: 4,
+    minimumRequiredHighSpeedRails: 4,
+    placedRails: rails(4),
+    cleared: isWithinTargetTime(5, 5),
+    savingsEligible: true,
+  })
+
+  assert.equal(result.savedHighSpeedRails, 0)
+  assert.equal(result.savingsRating, 'minimum')
+  assert.equal(result.savingsMark, '☆')
+  assert.equal(getFastRailSavingsRank(result.savingsRating), 2)
 })
 
 test('未クリアでは高速レールが残っていても節約評価を付けない', () => {
   const result = getFastRailSavings({
     maxHighSpeedRails: 4,
+    minimumRequiredHighSpeedRails: 2,
     placedRails: rails(3),
     cleared: isWithinTargetTime(5.5, 5),
     savingsEligible: true,
   })
 
   assert.equal(result.savedHighSpeedRails, 1)
+  assert.equal(result.savingsRating, null)
   assert.equal(result.savingsAwarded, false)
   assert.equal(getFastRailSavingsMessage(result), '')
 })
 
-test('節約評価対象外のステージではクリアしても評価を付けない', () => {
+test('指定時間以内ステージ以外ではクリアしても評価を付けない', () => {
   const result = getFastRailSavings({
     maxHighSpeedRails: 4,
+    minimumRequiredHighSpeedRails: 0,
     placedRails: rails(0),
     cleared: true,
     savingsEligible: false,
   })
 
   assert.equal(result.savedHighSpeedRails, 4)
+  assert.equal(result.savingsRating, null)
   assert.equal(result.savingsAwarded, false)
 })
 
 test('リトライ時は空の盤面から再計算し、前回の配置数を引き継がない', () => {
   const firstAttempt = getFastRailSavings({
     maxHighSpeedRails: 4,
+    minimumRequiredHighSpeedRails: 2,
     placedRails: rails(3),
     cleared: true,
     savingsEligible: true,
   })
   const retriedAttempt = getFastRailSavings({
     maxHighSpeedRails: 4,
+    minimumRequiredHighSpeedRails: 2,
     placedRails: [],
     cleared: true,
     savingsEligible: true,

@@ -114,7 +114,7 @@
   box-shadow: 0 8px 20px rgb(255 179 0 / 18%);
 }
 
-.stage-list .tutorial-stage-card span {
+.stage-list .tutorial-stage-card .stage-number {
   color: #e65100;
   font-size: 28px;
 }
@@ -146,12 +146,40 @@
   background: #ffecb3;
 }
 
-.stage-list span,
+.stage-condition-icon,
+.stage-fast-rail-bonus-mark {
+  position: absolute;
+  top: 10px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgb(69 90 100 / 28%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 4px 10px rgb(38 50 56 / 12%);
+  font-size: 19px;
+  line-height: 1;
+}
+
+.stage-condition-icon {
+  left: 10px;
+}
+
+.stage-fast-rail-bonus-mark {
+  right: 10px;
+  color: #ef6c00;
+  border-color: rgb(239 108 0 / 32%);
+  background: #fff8e1;
+  font-weight: 900;
+}
+
+.stage-list .stage-number,
 .stage-list small {
   display: block;
 }
 
-.stage-list span {
+.stage-list .stage-number {
   margin-bottom: 10px;
   font-size: 36px;
   font-weight: 900;
@@ -246,7 +274,7 @@
   background: linear-gradient(145deg, #51472f, #34404b);
 }
 
-.estimate-stage-select .stage-list .tutorial-stage-card > span {
+.estimate-stage-select .stage-list .tutorial-stage-card .stage-number {
   color: #ffd180;
 }
 
@@ -386,7 +414,7 @@
 
 .tutorial-guide-heading {
   display: grid;
-  grid-template-columns: 72px 1fr 72px;
+  grid-template-columns: 82px 1fr 82px;
   align-items: center;
   gap: 8px;
 }
@@ -408,6 +436,22 @@
 .tutorial-guide-heading h3 {
   color: #4e342e;
   font-size: 22px;
+}
+
+.tutorial-skip-button {
+  justify-self: end;
+  padding: 6px 10px;
+  border: 0;
+  border-bottom: 2px solid currentColor;
+  color: #795548;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.tutorial-skip-button:hover {
+  color: #e65100;
 }
 
 .tutorial-guide p {
