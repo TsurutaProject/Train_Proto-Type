@@ -30,7 +30,7 @@ const STAGES = {
     badge: '練習',
     description: '操作ガイドを見ながら電車を走らせよう',
     isTutorial: true,
-    targetTime: 4,
+    targetTime: 6,
     width: 7,
     height: 8,
     start: { x: 0, y: 2 },
@@ -51,7 +51,7 @@ const STAGES = {
     description: 'メモと予想時間を入力して答え合わせしよう',
     isTutorial: true,
     isEstimateTutorial: true,
-    targetTime: 4,
+    targetTime: 6,
     width: 7,
     height: 8,
     start: { x: 0, y: 2 },
@@ -96,7 +96,7 @@ const STAGES = {
   3: {
     title: 'ステージ3',
     description: '直進と高速レールを使う遠回りを比べよう',
-    targetTime: 5,
+    targetTime: 6,
     width: 8,
     height: 8,
     start: { x: 0, y: 2 },
@@ -136,7 +136,7 @@ const STAGES = {
   5: {
     title: 'ステージ5',
     description: '岩と木を避け、低速で中継地点へ向かおう',
-    targetTime: 6,
+    targetTime: 8,
     width: 9,
     height: 8,
     start: { x: 0, y: 2 },
@@ -159,7 +159,7 @@ const STAGES = {
   6: {
     title: 'ステージ6',
     description: '目標時間を守りながら高速レールを節約しよう',
-    targetTime: 5,
+    targetTime: 7,
     width: 10,
     height: 8,
     start: { x: 0, y: 2 },
@@ -183,7 +183,7 @@ const STAGES = {
   7: {
     title: 'ステージ7',
     description: '同じ条件を満たす複数の経路を見つけよう',
-    targetTime: 6.5,
+    targetTime: 8.5,
     width: 10,
     height: 8,
     start: { x: 0, y: 2 },
@@ -206,7 +206,7 @@ const STAGES = {
   8: {
     title: 'ステージ8',
     description: '2つの中継地点をすべて通過しよう',
-    targetTime: 6,
+    targetTime: 10,
     width: 10,
     height: 8,
     start: { x: 0, y: 3 },
@@ -264,7 +264,7 @@ const STAGES = {
     title: 'ステージ11',
     description: '横中継を抜けて折り返し、縦中継から別の高さへ進もう',
     isTurnaroundTutorial: true,
-    targetTime: 11.5,
+    targetTime: 15.5,
     width: 11,
     height: 8,
     start: { x: 0, y: 1 },
@@ -297,7 +297,7 @@ const STAGES = {
   12: {
     title: 'ステージ12',
     description: '複数中継・高低差・ゴール前の「のんびり」をまとめて攻略しよう',
-    targetTime: 8,
+    targetTime: 12,
     width: 11,
     height: 8,
     start: { x: 0, y: 6 },
@@ -330,7 +330,7 @@ const STAGES = {
   13: {
     title: 'ステージ13',
     description: '塞がれた道を避け、縦トンネルを上下に通過しよう',
-    targetTime: 10,
+    targetTime: 13,
     width: 10,
     height: 8,
     start: { x: 0, y: 4 },
@@ -357,7 +357,7 @@ const STAGES = {
   14: {
     title: 'ステージ14',
     description: '混雑区画を迂回するか、高速で抜けるか選ぼう',
-    targetTime: 8,
+    targetTime: 10,
     width: 11,
     height: 8,
     start: { x: 0, y: 3 },
@@ -389,7 +389,7 @@ const STAGES = {
   15: {
     title: 'ステージ15',
     description: '縦トンネルと混雑区画をまとめて攻略しよう',
-    targetTime: 10,
+    targetTime: 13,
     width: 11,
     height: 8,
     start: { x: 0, y: 6 },
@@ -1302,6 +1302,8 @@ function App() {
   }
 
   const getTravelTimeAt = (position) => {
+    if (getRelayCellAt(position)) return 1 / RAIL_TYPES.slow.speed
+
     return getRailTravelDetails(position)?.totalTime ?? 0
   }
 
@@ -2227,22 +2229,22 @@ function App() {
       if (segment.relayIndex === undefined) return []
 
       const relayGroup = currentStage.relayGroups[segment.relayIndex]
+      const labelAnchorCell = relayGroup.cells[relayGroup.cells.length - 1]
       const orientation = getRelayGroupOrientation(relayGroup)
-      const nearbyCandidates = relayGroup.cells.flatMap((cell) =>
+      const nearbyCandidates =
         orientation === 'vertical'
           ? [
-            { x: cell.x + 1, y: cell.y },
-            { x: cell.x - 1, y: cell.y },
-            { x: cell.x + 2, y: cell.y },
-            { x: cell.x - 2, y: cell.y },
+            { x: labelAnchorCell.x + 1, y: labelAnchorCell.y },
+            { x: labelAnchorCell.x - 1, y: labelAnchorCell.y },
+            { x: labelAnchorCell.x + 2, y: labelAnchorCell.y },
+            { x: labelAnchorCell.x - 2, y: labelAnchorCell.y },
           ]
           : [
-            { x: cell.x, y: cell.y - 1 },
-            { x: cell.x, y: cell.y + 1 },
-            { x: cell.x, y: cell.y - 2 },
-            { x: cell.x, y: cell.y + 2 },
-          ],
-      )
+            { x: labelAnchorCell.x, y: labelAnchorCell.y - 1 },
+            { x: labelAnchorCell.x, y: labelAnchorCell.y + 1 },
+            { x: labelAnchorCell.x, y: labelAnchorCell.y - 2 },
+            { x: labelAnchorCell.x, y: labelAnchorCell.y + 2 },
+          ]
       const fallbackCandidates = Array.from(
         { length: currentStage.width * currentStage.height },
         (_, index) => ({
@@ -2250,11 +2252,10 @@ function App() {
           y: Math.floor(index / currentStage.width),
         }),
       ).sort((a, b) => {
-        const referenceCell = relayGroup.cells[0]
         const distanceA =
-          Math.abs(a.x - referenceCell.x) + Math.abs(a.y - referenceCell.y)
+          Math.abs(a.x - labelAnchorCell.x) + Math.abs(a.y - labelAnchorCell.y)
         const distanceB =
-          Math.abs(b.x - referenceCell.x) + Math.abs(b.y - referenceCell.y)
+          Math.abs(b.x - labelAnchorCell.x) + Math.abs(b.y - labelAnchorCell.y)
         return distanceA - distanceB
       })
       const labelPosition = [...nearbyCandidates, ...fallbackCandidates].find(
@@ -2374,7 +2375,7 @@ function App() {
       ? fastRailTutorialStep
       : shortestRoute
       ? currentStage.isEstimateTutorial
-        ? userEstimatedTime === '4'
+        ? userEstimatedTime === '6'
           ? 7
           : estimateTutorialMemoComplete
             ? 6
@@ -2488,7 +2489,7 @@ function App() {
     },
     6: {
       title: '予想時間を入力しよう',
-      body: '強調された「自分の予想」へ「4」と入力してください。',
+      body: '強調された「自分の予想」へ「6」と入力してください。',
     },
     7: {
       title: '出発して答え合わせしよう',

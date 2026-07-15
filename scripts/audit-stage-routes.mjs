@@ -114,6 +114,11 @@ function createStageAudit(stage) {
 
     path.slice(1).forEach((position) => {
       const key = positionKey(position)
+      if (relayByPosition.has(key)) {
+        baseTimeUnits += 2
+        return
+      }
+
       if (specialKeys.has(key)) return
 
       const timeUnits = congestionKeys.has(key) ? 4 : 2
