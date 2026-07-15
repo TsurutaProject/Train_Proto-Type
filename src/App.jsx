@@ -263,6 +263,7 @@ const STAGES = {
   11: {
     title: 'ステージ11',
     description: '横中継を抜けて折り返し、縦中継から別の高さへ進もう',
+    isTurnaroundTutorial: true,
     targetTime: 11.5,
     width: 11,
     height: 8,
@@ -712,6 +713,149 @@ function StageListIcon() {
   )
 }
 
+const RUBY_DEFINITIONS = {
+  中継地点: 'ちゅうけいちてん',
+  目標時間: 'もくひょうじかん',
+  予想時間: 'よそうじかん',
+  混雑区画: 'こんざつくかく',
+  最短経路: 'さいたんけいろ',
+  追加評価: 'ついかひょうか',
+  時間以内: 'じかんいない',
+  接続済: 'せつぞくず',
+  半透明: 'はんとうめい',
+  準備完了: 'じゅんびかんりょう',
+  計算結果: 'けいさんけっか',
+  選択中: 'せんたくちゅう',
+  最終予想時間: 'さいしゅうよそうじかん',
+  区間時間: 'くかんじかん',
+  再生: 'さいせい',
+  一度: 'いちど',
+  見積: 'みつ',
+  通常: 'つうじょう',
+  条件: 'じょうけん',
+  一覧: 'いちらん',
+  地点: 'ちてん',
+  必要: 'ひつよう',
+  節約: 'せつやく',
+  到着: 'とうちゃく',
+  出発: 'しゅっぱつ',
+  実際: 'じっさい',
+  結果: 'けっか',
+  選択: 'せんたく',
+  操作: 'そうさ',
+  確認: 'かくにん',
+  予想: 'よそう',
+  目標: 'もくひょう',
+  時間: 'じかん',
+  以内: 'いない',
+  通過: 'つうか',
+  配置: 'はいち',
+  経路: 'けいろ',
+  電車: 'でんしゃ',
+  走行中: 'そうこうちゅう',
+  低速: 'ていそく',
+  高速: 'こうそく',
+  迂回: 'うかい',
+  障害物: 'しょうがいぶつ',
+  複数: 'ふくすう',
+  近道: 'ちかみち',
+  遠回: 'とおまわ',
+  直進: 'ちょくしん',
+  挑戦: 'ちょうせん',
+  攻略: 'こうりゃく',
+  入力: 'にゅうりょく',
+  実績: 'じっせき',
+  説明: 'せつめい',
+  表示: 'ひょうじ',
+  場所: 'ばしょ',
+  役割: 'やくわり',
+  設置: 'せっち',
+  方向: 'ほうこう',
+  途中: 'とちゅう',
+  黄色: 'きいろ',
+  連続: 'れんぞく',
+  盤面: 'ばんめん',
+  自分: 'じぶん',
+  差: 'さ',
+  内訳: 'うちわけ',
+  縦: 'たて',
+  横: 'よこ',
+  岩: 'いわ',
+  木: 'き',
+  全: 'すべ',
+  同: 'おな',
+  列: 'れつ',
+  右: 'みぎ',
+  左: 'ひだり',
+  上下: 'じょうげ',
+  秒: 'びょう',
+  本: 'ほん',
+  枠: 'わく',
+  折: 'お',
+  返: 'かえ',
+  閉: 'と',
+  動: 'うご',
+  答: 'こた',
+  合: 'あ',
+  強: 'きょう',
+  調: 'ちょう',
+  比: 'くら',
+  覚: 'おぼ',
+  守: 'まも',
+  見: 'み',
+  作: 'つく',
+  塞: 'ふさ',
+  使: 'つか',
+  方: 'かた',
+  切: 'き',
+  替: 'か',
+  戻: 'もど',
+  避: 'さ',
+  向: 'む',
+  進: 'すす',
+  選: 'えら',
+  遊: 'あそ',
+  開: 'ひら',
+  片: 'かた',
+  付: 'づ',
+  空: 'あ',
+  残: 'のこ',
+}
+
+const RUBY_TOKENS = Object.keys(RUBY_DEFINITIONS).sort(
+  (a, b) => b.length - a.length,
+)
+
+function RubyText({ children, text }) {
+  const value = text ?? children
+
+  if (typeof value !== 'string') return value
+
+  const parts = []
+  let index = 0
+
+  while (index < value.length) {
+    const token = RUBY_TOKENS.find((candidate) =>
+      value.startsWith(candidate, index),
+    )
+
+    if (token) {
+      parts.push(
+        <ruby key={`${token}-${index}`}>
+          {token}
+          <rt>{RUBY_DEFINITIONS[token]}</rt>
+        </ruby>,
+      )
+      index += token.length
+    } else {
+      parts.push(value[index])
+      index += 1
+    }
+  }
+
+  return <>{parts}</>
+}
+
 function MovingTrain({ motion, duration, ghost = false }) {
   return (
     <g
@@ -760,6 +904,8 @@ function App() {
   const [userEstimatedTime, setUserEstimatedTime] = useState('')
   const [estimateMemo, setEstimateMemo] = useState(EMPTY_ESTIMATE_MEMO)
   const [tutorialSkipped, setTutorialSkipped] = useState(false)
+  const [turnaroundDemoOpen, setTurnaroundDemoOpen] = useState(false)
+  const [turnaroundDemoPlaying, setTurnaroundDemoPlaying] = useState(false)
   const mapRef = useRef(null)
   const trainMotionLayerRef = useRef(null)
   const trainRunIdRef = useRef(0)
@@ -793,6 +939,8 @@ function App() {
     setUserEstimatedTime('')
     setEstimateMemo(EMPTY_ESTIMATE_MEMO)
     setTutorialSkipped(false)
+    setTurnaroundDemoOpen(false)
+    setTurnaroundDemoPlaying(false)
     setScreen('game')
   }
 
@@ -2227,6 +2375,30 @@ function App() {
           : tutorialFirstRail
             ? 2
             : 1
+  const specialTutorialKind =
+    !tutorialSkipped && !trainRun && !tutorialStep && !currentStage?.isTutorial
+      ? currentStage?.relayGroups?.length > 0 && !currentStage?.isTurnaroundTutorial
+          ? 'relay'
+          : null
+      : null
+  const currentStageResultKey = selectedStage
+    ? getStageResultKey(selectedStage, estimateMode)
+    : null
+  const currentStagePlayed = currentStageResultKey
+    ? Boolean(stageResults[currentStageResultKey])
+    : false
+  const shouldForceTurnaroundDemo =
+    !tutorialSkipped &&
+    !trainRun &&
+    !tutorialStep &&
+    Boolean(currentStage?.isTurnaroundTutorial) &&
+    !currentStagePlayed
+  const shouldShowTurnaroundDemo =
+    Boolean(currentStage?.turnaroundPoints?.length) &&
+    (turnaroundDemoOpen || shouldForceTurnaroundDemo)
+  const hasTutorialOverlay = Boolean(
+    tutorialStep || specialTutorialKind || shouldShowTurnaroundDemo,
+  )
   const standardTutorialInstructions = {
     1: {
       title: 'レールを置いてみよう',
@@ -2328,6 +2500,17 @@ function App() {
         ? 'slow'
         : null
     : null
+  const isSpecialTutorialTargetCell = (x, y) => {
+    if (specialTutorialKind === 'relay') {
+      return Boolean(getRelayCellAt({ x, y }))
+    }
+
+    if (specialTutorialKind === 'turnaround') {
+      return Boolean(getTurnaroundPointAt({ x, y }))
+    }
+
+    return false
+  }
 
   const isTutorialTargetCell = (x, y) => {
     if (!tutorialStep) return false
@@ -2353,12 +2536,94 @@ function App() {
     }
     return false
   }
+  const selectedStageOrderKey =
+    selectedStage === 'estimateTutorial' ? 'tutorial' : selectedStage
+  const selectedStageOrderIndex = STAGE_ORDER.findIndex(
+    (stageNumber) => stageNumber === selectedStageOrderKey,
+  )
+  const nextStageOrderKey =
+    selectedStageOrderIndex >= 0
+      ? STAGE_ORDER[selectedStageOrderIndex + 1]
+      : null
+  const nextStageId =
+    nextStageOrderKey === 'tutorial' && estimateMode
+      ? 'estimateTutorial'
+      : nextStageOrderKey
+  const playTurnaroundDemo = () => {
+    setTurnaroundDemoPlaying(false)
+    window.setTimeout(() => {
+      setTurnaroundDemoPlaying(true)
+    }, 0)
+  }
+  const closeTurnaroundDemo = () => {
+    setTurnaroundDemoOpen(false)
+    setTurnaroundDemoPlaying(false)
+    setTutorialSkipped(true)
+  }
+  const renderTurnaroundDemoCell = (row, column) => {
+    const cellKey = `${row}-${column}`
+    const classNames = ['turnaround-demo-cell']
+    let content = null
+
+    if (cellKey === '1-0') {
+      classNames.push('turnaround-demo-start')
+      content = (
+        <>
+          <img src={redStationBuildingImage} alt="" aria-hidden="true" />
+          <b>S</b>
+        </>
+      )
+    } else if (cellKey === '3-1') {
+      classNames.push('turnaround-demo-goal')
+      content = (
+        <>
+          <img src={stationBuildingImage} alt="" aria-hidden="true" />
+          <b>G</b>
+        </>
+      )
+    } else if (cellKey === '1-3') {
+      classNames.push('turnaround-demo-lever')
+      content = <img src={leverImage} alt="" aria-hidden="true" />
+    } else if (cellKey === '1-1') {
+      classNames.push('turnaround-demo-switch')
+      content = (
+        <>
+          <img
+            className="turnaround-demo-straight-rail"
+            src={straightRailImage}
+            alt=""
+            aria-hidden="true"
+          />
+          <img
+            className="turnaround-demo-curve-rail"
+            src={curvedRailImage}
+            alt=""
+            aria-hidden="true"
+          />
+        </>
+      )
+    } else if (cellKey === '1-2') {
+      classNames.push('turnaround-demo-rail', 'turnaround-demo-rail-to-lever')
+      content = <img src={straightRailImage} alt="" aria-hidden="true" />
+    } else if (cellKey === '2-1') {
+      classNames.push('turnaround-demo-rail', 'turnaround-demo-rail-down')
+      content = <img src={straightRailImage} alt="" aria-hidden="true" />
+    } else {
+      classNames.push('turnaround-demo-empty')
+    }
+
+    return (
+      <span key={cellKey} className={classNames.join(' ')}>
+        {content}
+      </span>
+    )
+  }
 
   return (
     <div className="app">
       {screen === 'title' && (
         <div className="screen title-screen">
-          <h1>時間ぴったりトレイン</h1>
+          <h1><RubyText>時間ぴったりトレイン</RubyText></h1>
 
           <button className="main-button" onClick={() => setScreen('stageSelect')}>
             START
@@ -2368,8 +2633,8 @@ function App() {
 
       {screen === 'stageSelect' && (
         <div className={`screen stage-select-screen ${estimateMode ? 'estimate-stage-select' : ''}`}>
-          <h1>ステージ選択</h1>
-          <p>遊ぶステージを選んでください</p>
+          <h1><RubyText>ステージ選択</RubyText></h1>
+          <p><RubyText>遊ぶステージを選んでください</RubyText></p>
 
           <section className="stage-mode-selector" aria-label="プレイモード選択">
             <div>
@@ -2379,7 +2644,7 @@ function App() {
                 className={!estimateMode ? 'active' : ''}
                 onClick={() => setEstimateMode(false)}
               >
-                通常モード
+                <RubyText>通常モード</RubyText>
               </button>
               <button
                 type="button"
@@ -2387,13 +2652,17 @@ function App() {
                 className={estimateMode ? 'active' : ''}
                 onClick={() => setEstimateMode(true)}
               >
-                見積もりモード
+                <RubyText>見積もりモード</RubyText>
               </button>
             </div>
             <p>
-              {estimateMode
-                ? '時間を予想してから出発し、あとで答え合わせします。'
-                : '予想時間を確認しながらレールを配置します。'}
+              <RubyText
+                text={
+                  estimateMode
+                    ? '時間を予想してから出発し、あとで答え合わせします。'
+                    : '予想時間を確認しながらレールを配置します。'
+                }
+              />
             </p>
           </section>
 
@@ -2414,7 +2683,7 @@ function App() {
               return (
                 <button
                   key={stageNumber}
-                  className={`${stage.isTutorial ? 'tutorial-stage-card' : ''} ${stageCleared ? 'completed-stage-card' : ''} ${stageResult && Math.abs(stageResult.difference) >= EXACT_TIME_TOLERANCE ? 'off-time-stage-card' : ''}`}
+                  className={`${stage.isTutorial || stage.isTurnaroundTutorial ? 'tutorial-stage-card' : ''} ${stageCleared ? 'completed-stage-card' : ''} ${stageResult && Math.abs(stageResult.difference) >= EXACT_TIME_TOLERANCE ? 'off-time-stage-card' : ''}`}
                   onClick={() => startStage(stageId)}
                 >
                   <span
@@ -2435,11 +2704,13 @@ function App() {
                       {fastRailBonusMark}
                     </span>
                   )}
-                  <span className="stage-number">{stage.badge ?? stageNumber}</span>
-                  <small>{stage.description}</small>
+                  <span className="stage-number">
+                    <RubyText text={String(stage.badge ?? stageNumber)} />
+                  </span>
+                  <small><RubyText text={stage.description} /></small>
                   {stageResult && (
                     <em className="stage-result-mark">
-                      {getStageResultLabel(stage, stageResult)}
+                      <RubyText text={getStageResultLabel(stage, stageResult)} />
                     </em>
                   )}
                 </button>
@@ -2447,24 +2718,13 @@ function App() {
             })}
           </div>
 
-          <button className="sub-button" onClick={() => setScreen('title')}>
-            タイトルへ戻る
-          </button>
         </div>
       )}
 
       {screen === 'game' && currentStage && (
-        <div className={`screen game-screen ${estimateMode ? 'estimate-mode' : ''} ${tutorialStep ? 'tutorial-active' : ''}`}>
+        <div className={`screen game-screen ${estimateMode ? 'estimate-mode' : ''} ${hasTutorialOverlay ? 'tutorial-active' : ''}`}>
           <div className="game-header">
-            <button
-              aria-label="タイトルへ戻る"
-              title="タイトルへ戻る"
-              disabled={Boolean(trainRun)}
-              onClick={() => setScreen('title')}
-            >
-              🏠
-            </button>
-            <h2>{currentStage.title}</h2>
+            <h2><RubyText text={currentStage.title} /></h2>
             <button
               aria-label="ステージ一覧を開く"
               title="ステージ一覧"
@@ -2475,34 +2735,56 @@ function App() {
             </button>
           </div>
 
-          <p className="target-time">目標時間：{currentStage.targetTime}秒</p>
+          <p className="target-time">
+            <RubyText text={`目標時間：${currentStage.targetTime}秒`} />
+          </p>
 
           <div className="stage-constraints" aria-label="ステージの条件">
-            <span>中継地点を全て通ること</span>
+            <span><RubyText>中継地点を全て通ること</RubyText></span>
             {currentStage.turnaroundPoints?.length > 0 && (
-              <span>折り返し地点を通過する</span>
+              <span><RubyText>折り返し地点を通過する</RubyText></span>
             )}
             <span>
-              {getClearCondition(currentStage) === 'within'
-                ? '時間以内でゴールする'
-                : '時間ぴったりでゴールする'}
+              <RubyText
+                text={
+                  getClearCondition(currentStage) === 'within'
+                    ? '時間以内でゴールする'
+                    : '時間ぴったりでゴールする'
+                }
+              />
             </span>
           </div>
+
+          {currentStage.turnaroundPoints?.length > 0 && (
+            <button
+              type="button"
+              className="turnaround-demo-open-button"
+              disabled={Boolean(trainRun)}
+              onClick={() => {
+                setTurnaroundDemoOpen(true)
+                setTurnaroundDemoPlaying(false)
+              }}
+            >
+              <RubyText>折り返しデモを見る</RubyText>
+            </button>
+          )}
 
           {tutorialStep && (
             <section className="tutorial-guide" aria-live="polite">
               <div className="tutorial-guide-heading">
-                <span>操作 {tutorialStep} / {tutorialTotalSteps}</span>
-                <h3>{tutorialInstructions[tutorialStep].title}</h3>
+                <span>
+                  <RubyText text={`操作 ${tutorialStep} / ${tutorialTotalSteps}`} />
+                </span>
+                <h3><RubyText text={tutorialInstructions[tutorialStep].title} /></h3>
                 <button
                   type="button"
                   className="tutorial-skip-button"
                   onClick={() => setTutorialSkipped(true)}
                 >
-                  スキップ
+                  <RubyText>スキップ</RubyText>
                 </button>
               </div>
-              <p>{tutorialInstructions[tutorialStep].body}</p>
+              <p><RubyText text={tutorialInstructions[tutorialStep].body} /></p>
               <div className="tutorial-progress" aria-hidden="true">
                 {Array.from(
                   { length: tutorialTotalSteps },
@@ -2517,9 +2799,71 @@ function App() {
             </section>
           )}
 
+          {specialTutorialKind === 'relay' && (
+            <section className="tutorial-guide tutorial-guide-info" aria-live="polite">
+              <div className="tutorial-guide-heading">
+                <span><RubyText>説明</RubyText></span>
+                <h3><RubyText>中継地点を確認しよう</RubyText></h3>
+                <button
+                  type="button"
+                  className="tutorial-skip-button"
+                  onClick={() => setTutorialSkipped(true)}
+                >
+                  <RubyText>スキップ</RubyText>
+                </button>
+              </div>
+              <p>
+                <RubyText>
+                  黄色い枠で強調されたトンネルが中継地点です。クリアするには、スタートからゴールまでの経路の途中で必ず通過してください。
+                </RubyText>
+              </p>
+            </section>
+          )}
+
+          {shouldShowTurnaroundDemo && (
+            <section className="tutorial-guide turnaround-demo-guide" aria-live="polite">
+              <div className="tutorial-guide-heading">
+                <span><RubyText>デモ</RubyText></span>
+                <h3><RubyText>折り返し地点の動きを見よう</RubyText></h3>
+                <button
+                  type="button"
+                  className="tutorial-skip-button"
+                  onClick={closeTurnaroundDemo}
+                >
+                  <RubyText>閉じる</RubyText>
+                </button>
+              </div>
+              <div
+                className={`turnaround-demo-board ${turnaroundDemoPlaying ? 'turnaround-demo-playing' : ''}`}
+                aria-label="折り返し地点の小さいデモ盤面"
+              >
+                {Array.from({ length: 4 }, (_, row) =>
+                  Array.from({ length: 4 }, (__, column) =>
+                    renderTurnaroundDemoCell(row, column),
+                  ),
+                )}
+                <span className="turnaround-demo-train" aria-hidden="true">
+                  <img src={blueTrainRightImage} alt="" />
+                </span>
+              </div>
+              <button
+                type="button"
+                className="turnaround-demo-play-button"
+                onClick={playTurnaroundDemo}
+              >
+                <RubyText>{turnaroundDemoPlaying ? 'もう一度再生' : '再生'}</RubyText>
+              </button>
+              <p>
+                <RubyText>
+                  電車はスタートからレバーへ進み、折り返して同じレールを戻ります。戻ってきた途中でレールが曲がるルートに切り替わり、ゴールへ向かいます。
+                </RubyText>
+              </p>
+            </section>
+          )}
+
           <div className="rail-yard">
             <div className="rail-yard-heading">
-              <h3>レール選択</h3>
+              <h3><RubyText>レール選択</RubyText></h3>
             </div>
 
             <div className="rail-selector">
@@ -2538,9 +2882,13 @@ function App() {
                   aria-pressed={selectedRailType === railType}
                 >
                   <strong>
-                    {railType === 'fast' && remainingFastRails !== null
-                      ? `高速レール：あと${remainingFastRails}本`
-                      : RAIL_TYPES[railType].label}
+                    <RubyText
+                      text={
+                        railType === 'fast' && remainingFastRails !== null
+                          ? `高速レール：あと${remainingFastRails}本`
+                          : RAIL_TYPES[railType].label
+                      }
+                    />
                   </strong>
                 </button>
               ))}
@@ -2556,17 +2904,22 @@ function App() {
                   setMessage('')
                 }}
               >
-                全て片付ける
+                <RubyText>全て片付ける</RubyText>
               </button>
             </div>
 
             <p className="rail-selection-description">
-              選択中：{RAIL_TYPES[selectedRailType].description}
-              {selectedRailType === 'slow' && '・ドラッグで連続配置できます'}
-              {selectedRailType === 'fast' &&
-                (currentStage.slowZoneRadius ||
-                  currentStage.relayRequiresSlowApproach) &&
-                '・「のんびり」のマスでは1マスを1秒で進みます'}
+              <RubyText
+                text={`選択中：${RAIL_TYPES[selectedRailType].description}${
+                  selectedRailType === 'slow' ? '・ドラッグで連続配置できます' : ''
+                }${
+                  selectedRailType === 'fast' &&
+                  (currentStage.slowZoneRadius ||
+                    currentStage.relayRequiresSlowApproach)
+                    ? '・「のんびり」のマスでは1マスを1秒で進みます'
+                    : ''
+                }`}
+              />
             </p>
 
           </div>
@@ -2609,7 +2962,9 @@ function App() {
                 )
                 const mapSegmentTimeLabel =
                   mapSegmentTimeLabelByPosition.get(positionToKey({ x, y }))
-                const isTutorialTarget = isTutorialTargetCell(x, y)
+                const isTutorialTarget =
+                  isTutorialTargetCell(x, y) ||
+                  isSpecialTutorialTargetCell(x, y)
                 const cellLabel = isStart
                   ? 'スタート'
                   : isGoal
@@ -2643,8 +2998,8 @@ function App() {
                     {renderCell(x, y, visibleRoute)}
                     {shouldRevealEstimate && mapSegmentTimeLabel && (
                       <span className="map-segment-time-label" aria-hidden="true">
-                        <small>{mapSegmentTimeLabel.label}</small>
-                        <strong>{mapSegmentTimeLabel.time.toFixed(1)}秒</strong>
+                        <small><RubyText text={mapSegmentTimeLabel.label} /></small>
+                        <strong><RubyText text={`${mapSegmentTimeLabel.time.toFixed(1)}秒`} /></strong>
                       </span>
                     )}
                   </button>
@@ -2699,50 +3054,62 @@ function App() {
           >
             {shouldRevealEstimate ? (
               <>
-                <span className="time-panel-label">予想時間</span>
+                <span className="time-panel-label"><RubyText>予想時間</RubyText></span>
                 <span className="time-panel-scope">
-                  {shortestRoute
-                    ? 'ゴールまで'
-                    : connectedRelayRoute
-                      ? `中継地点${connectedRelayRoute.relayNumber}まで`
-                      : getRelayCells().length > 0
-                        ? '中継地点まで'
-                        : 'ゴールまで'}
+                  <RubyText
+                    text={
+                      shortestRoute
+                        ? 'ゴールまで'
+                        : connectedRelayRoute
+                          ? `中継地点${connectedRelayRoute.relayNumber}まで`
+                          : getRelayCells().length > 0
+                            ? '中継地点まで'
+                            : 'ゴールまで'
+                    }
+                  />
                 </span>
                 <strong>
-                  {shortestRoute
-                    ? `${shortestRoute.time.toFixed(1)}秒`
-                    : connectedRelayRoute
-                      ? `${connectedRelayRoute.route.time.toFixed(1)}秒`
-                      : '未接続'}
+                  <RubyText
+                    text={
+                      shortestRoute
+                        ? `${shortestRoute.time.toFixed(1)}秒`
+                        : connectedRelayRoute
+                          ? `${connectedRelayRoute.route.time.toFixed(1)}秒`
+                          : '未接続'
+                    }
+                  />
                 </strong>
                 {visibleRouteSegments.length > 0 && (
                   <div className="route-segment-times">
                     {visibleRouteSegments.map((segment) => (
                       <span key={segment.label}>
-                        <small>{segment.label}</small>
-                        <b>{segment.time.toFixed(1)}秒</b>
+                        <small><RubyText text={segment.label} /></small>
+                        <b><RubyText text={`${segment.time.toFixed(1)}秒`} /></b>
                       </span>
                     ))}
                   </div>
                 )}
                 <small className="time-panel-note">
-                  {shortestRoute
-                    ? `最短経路 ${shortestRouteRailCount}マス / 目標 ${currentStage.targetTime}秒`
-                    : connectedRelayRoute
-                      ? `ここまで ${visibleRouteRailCount}マス。ゴールまでつなげると最終予想時間に変わります。`
-                      : getRelayCells().length > 0
-                        ? 'まずはスタートから中継地点までレールをつなげてください。'
-                        : 'スタートからゴールまでレールをつなげると表示されます。'}
+                  <RubyText
+                    text={
+                      shortestRoute
+                        ? `最短経路 ${shortestRouteRailCount}マス / 目標 ${currentStage.targetTime}秒`
+                        : connectedRelayRoute
+                          ? `ここまで ${visibleRouteRailCount}マス。ゴールまでつなげると最終予想時間に変わります。`
+                          : getRelayCells().length > 0
+                            ? 'まずはスタートから中継地点までレールをつなげてください。'
+                            : 'スタートからゴールまでレールをつなげると表示されます。'
+                    }
+                  />
                 </small>
               </>
             ) : (
               <>
-                <span className="time-panel-label">見積もりモード</span>
-                <span className="time-panel-scope">出発後に答え合わせ</span>
+                <span className="time-panel-label"><RubyText>見積もりモード</RubyText></span>
+                <span className="time-panel-scope"><RubyText>出発後に答え合わせ</RubyText></span>
                 <strong>？？？</strong>
                 <small className="time-panel-note">
-                  区間時間と最終予想時間は、出発するまで表示されません。
+                  <RubyText>区間時間と最終予想時間は、出発するまで表示されません。</RubyText>
                 </small>
               </>
             )}
@@ -2751,42 +3118,44 @@ function App() {
           <div className="rail-info" aria-label="マップの凡例">
             <span className="rail-info-item">
               <img src={redStationBuildingImage} alt="" aria-hidden="true" />
-              <span>スタート</span>
+              <span><RubyText>スタート</RubyText></span>
             </span>
             <span className="rail-info-item">
               <img src={stationBuildingImage} alt="" aria-hidden="true" />
-              <span>ゴール</span>
+              <span><RubyText>ゴール</RubyText></span>
             </span>
             <span className="rail-info-item">
               <img src={tunnelEntranceRailLeftImage} alt="" aria-hidden="true" />
-              <span>中継地点</span>
+              <span><RubyText>中継地点</RubyText></span>
             </span>
             {currentStage.turnaroundPoints?.length > 0 && (
               <span className="rail-info-item">
                 <img src={leverImage} alt="" aria-hidden="true" />
-                <span>折り返し地点</span>
+                <span><RubyText>折り返し地点</RubyText></span>
               </span>
             )}
             <span className="rail-info-item">
               <img src={straightRailImage} alt="" aria-hidden="true" />
-              <span>配置 {placedRails.length}マス</span>
+              <span><RubyText text={`配置 ${placedRails.length}マス`} /></span>
             </span>
             <span className="rail-info-item rail-info-route">
               <img src={straightRailImage} alt="" aria-hidden="true" />
               <span>
-                経路 {visibleRoute ? `${visibleRouteRailCount}マス` : '未接続'}
+                <RubyText
+                  text={`経路 ${visibleRoute ? `${visibleRouteRailCount}マス` : '未接続'}`}
+                />
               </span>
             </span>
           </div>
 
           {trainRun && (
             <p className="train-status" aria-live="polite">
-              電車が走行中です
-              <span>最短経路を走行中</span>
+              <RubyText>電車が走行中です</RubyText>
+              <span><RubyText>最短経路を走行中</RubyText></span>
             </p>
           )}
 
-          {message && <p className="game-message">{message}</p>}
+          {message && <p className="game-message"><RubyText text={message} /></p>}
 
           {estimateMode && (
             <section
@@ -2794,14 +3163,16 @@ function App() {
               aria-label="見積もりメモ"
             >
               <div className="estimate-memo-heading">
-                <h3>見積もりメモ</h3>
-                <span>{estimateRevealed ? '実績' : '入力'}</span>
+                <h3><RubyText>見積もりメモ</RubyText></h3>
+                <span>
+                  <RubyText text={estimateRevealed ? '実績' : '入力'} />
+                </span>
               </div>
 
               <div className="estimate-memo-fields">
                 {ESTIMATE_MEMO_FIELDS.map((field) => (
                   <label key={field.key}>
-                    <span>{field.label}</span>
+                    <span><RubyText text={field.label} /></span>
                     <input
                       type="number"
                       inputMode="numeric"
@@ -2825,8 +3196,9 @@ function App() {
                     />
                     {estimateRevealed && revealedEstimateBreakdown && (
                       <small>
-                        {revealedEstimateBreakdown[field.key].count}マス・
-                        {revealedEstimateBreakdown[field.key].time.toFixed(1)}秒
+                        <RubyText
+                          text={`${revealedEstimateBreakdown[field.key].count}マス・${revealedEstimateBreakdown[field.key].time.toFixed(1)}秒`}
+                        />
                       </small>
                     )}
                   </label>
@@ -2836,7 +3208,7 @@ function App() {
               <label
                 className={`user-time-estimate ${currentStage.isEstimateTutorial && tutorialStep === 6 ? 'tutorial-control-highlight' : ''}`}
               >
-                <span>自分の予想</span>
+                <span><RubyText>自分の予想</RubyText></span>
                 <span className="user-time-estimate-input">
                   <input
                     type="number"
@@ -2855,7 +3227,7 @@ function App() {
                       )
                     }
                   />
-                  秒
+                  <RubyText>秒</RubyText>
                 </span>
               </label>
             </section>
@@ -2874,9 +3246,13 @@ function App() {
                 : undefined
             }
           >
-            {trainRun
-              ? `2倍速：${trainRun.playbackRate === 2 ? 'ON' : 'OFF'}`
-              : '出発'}
+            <RubyText
+              text={
+                trainRun
+                  ? `2倍速：${trainRun.playbackRate === 2 ? 'ON' : 'OFF'}`
+                  : '出発'
+              }
+            />
           </button>
         </div>
       )}
@@ -2884,35 +3260,49 @@ function App() {
       {screen === 'result' && result && (
         <div className="screen result-screen">
           <div className={`result-box ${result.estimate ? 'result-box-estimate' : ''}`}>
-            <h1>リザルト</h1>
+            <h1><RubyText>リザルト</RubyText></h1>
             <p>
-              クリア条件：{result.clearCondition === 'within'
-                ? '目標時間以内'
-                : '目標時間ぴったり'}
+              <RubyText
+                text={`クリア条件：${
+                  result.clearCondition === 'within'
+                    ? '目標時間以内'
+                    : '目標時間ぴったり'
+                }`}
+              />
             </p>
-            <p>目標：{result.targetTime}秒</p>
-            <p>実際：{result.actualTime.toFixed(1)}秒</p>
-            <p>{getResultMessage()}</p>
+            <p><RubyText text={`目標：${result.targetTime}秒`} /></p>
+            <p><RubyText text={`実際：${result.actualTime.toFixed(1)}秒`} /></p>
+            <p><RubyText text={getResultMessage()} /></p>
             {result.fastRailSavingsAwarded && (
               <p className="fast-rail-saving-feedback">
-                {getFastRailSavingsMessage({
-                  savingsAwarded: result.fastRailSavingsAwarded,
-                  savingsRating: result.fastRailSavingsRating,
-                  savedHighSpeedRails: result.remainingFastRails,
-                })}
+                <RubyText
+                  text={getFastRailSavingsMessage({
+                    savingsAwarded: result.fastRailSavingsAwarded,
+                    savingsRating: result.fastRailSavingsRating,
+                    savedHighSpeedRails: result.remainingFastRails,
+                  })}
+                />
               </p>
             )}
 
             {result.estimate && (
               <section className="estimate-result">
-                <h2>見積もりの答え合わせ</h2>
+                <h2><RubyText>見積もりの答え合わせ</RubyText></h2>
                 <div className="estimate-result-summary">
-                  <span>自分の予想 <strong>{result.estimate.userTime.toFixed(1)}秒</strong></span>
-                  <span>計算結果 <strong>{result.actualTime.toFixed(1)}秒</strong></span>
                   <span>
-                    予想との差{' '}
+                    <RubyText>自分の予想</RubyText>{' '}
+                    <strong><RubyText text={`${result.estimate.userTime.toFixed(1)}秒`} /></strong>
+                  </span>
+                  <span>
+                    <RubyText>計算結果</RubyText>{' '}
+                    <strong><RubyText text={`${result.actualTime.toFixed(1)}秒`} /></strong>
+                  </span>
+                  <span>
+                    <RubyText>予想との差</RubyText>{' '}
                     <strong>
-                      {Math.abs(result.estimate.userTime - result.actualTime).toFixed(1)}秒
+                      <RubyText
+                        text={`${Math.abs(result.estimate.userTime - result.actualTime).toFixed(1)}秒`}
+                      />
                     </strong>
                   </span>
                 </div>
@@ -2921,7 +3311,7 @@ function App() {
                   <div className="estimate-result-segments">
                     {result.estimate.segments.map((segment) => (
                       <span key={segment.label}>
-                        {segment.label}：{segment.time.toFixed(1)}秒
+                        <RubyText text={`${segment.label}：${segment.time.toFixed(1)}秒`} />
                       </span>
                     ))}
                   </div>
@@ -2930,11 +3320,14 @@ function App() {
                 <div className="estimate-result-breakdown">
                   {ESTIMATE_MEMO_FIELDS.map((field) => (
                     <div key={field.key}>
-                      <strong>{field.label}</strong>
-                      <span>メモ {result.estimate.memo[field.key]}マス</span>
+                      <strong><RubyText text={field.label} /></strong>
                       <span>
-                        実際 {result.estimate.breakdown[field.key].count}マス・
-                        {result.estimate.breakdown[field.key].time.toFixed(1)}秒
+                        <RubyText text={`メモ ${result.estimate.memo[field.key]}マス`} />
+                      </span>
+                      <span>
+                        <RubyText
+                          text={`実際 ${result.estimate.breakdown[field.key].count}マス・${result.estimate.breakdown[field.key].time.toFixed(1)}秒`}
+                        />
                       </span>
                     </div>
                   ))}
@@ -2944,11 +3337,11 @@ function App() {
 
             <div className="result-buttons">
               <button
-                aria-label="タイトルへ戻る"
-                title="タイトルへ戻る"
-                onClick={() => setScreen('title')}
+                aria-label="ステージ一覧を開く"
+                title="ステージ一覧"
+                onClick={() => setScreen('stageSelect')}
               >
-                🏠
+                <StageListIcon />
               </button>
               <button
                 aria-label="このステージをもう一度遊ぶ"
@@ -2958,11 +3351,14 @@ function App() {
                 ↻
               </button>
               <button
-                aria-label="ステージ一覧を開く"
-                title="ステージ一覧"
-                onClick={() => setScreen('stageSelect')}
+                aria-label="次のステージへ進む"
+                title="次のステージ"
+                disabled={!nextStageId}
+                onClick={() => {
+                  if (nextStageId) startStage(nextStageId)
+                }}
               >
-                <StageListIcon />
+                ▶︎
               </button>
             </div>
           </div>
