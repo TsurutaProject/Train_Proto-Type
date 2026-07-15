@@ -21,11 +21,19 @@ function getDirection(from, to) {
   )?.name
 }
 
+function getRelayOrientation(group) {
+  if (group.orientation) return group.orientation
+  if (group.cells.length === 1) return 'single'
+
+  const first = group.cells[0]
+  const last = group.cells[group.cells.length - 1]
+
+  return first.x === last.x ? 'vertical' : 'horizontal'
+}
+
 function createStageAudit(stage) {
   const relayCells = stage.relayGroups.flatMap((group, relayIndex) => {
-    const first = group.cells[0]
-    const last = group.cells[group.cells.length - 1]
-    const orientation = group.orientation ?? (first.x === last.x ? 'vertical' : 'horizontal')
+    const orientation = getRelayOrientation(group)
 
     return group.cells.map((cell, cellIndex) => ({
       ...cell,
@@ -69,7 +77,12 @@ function createStageAudit(stage) {
       .filter(Boolean)
 
     return connectedRelays.every((relay) => {
-      const allowed = relay.orientation === 'vertical' ? ['up', 'down'] : ['left', 'right']
+      const allowed =
+        relay.orientation === 'single'
+          ? ['up', 'down', 'left', 'right']
+          : relay.orientation === 'vertical'
+            ? ['up', 'down']
+            : ['left', 'right']
       return allowed.includes(direction)
     })
   }
@@ -79,7 +92,12 @@ function createStageAudit(stage) {
 
     return relayCells.some((relay) => {
       const direction = getDirection(position, relay)
-      const allowed = relay.orientation === 'vertical' ? ['up', 'down'] : ['left', 'right']
+      const allowed =
+        relay.orientation === 'single'
+          ? ['up', 'down', 'left', 'right']
+          : relay.orientation === 'vertical'
+            ? ['up', 'down']
+            : ['left', 'right']
       return allowed.includes(direction)
     })
   }

@@ -575,8 +575,12 @@
   height: 95%;
 }
 
-.turnaround-demo-rail-down img {
+.turnaround-demo-rail-to-lever img {
   transform: rotate(90deg);
+}
+
+.turnaround-demo-rail-down img {
+  transform: rotate(0deg);
 }
 
 .turnaround-demo-switch img {
@@ -584,6 +588,10 @@
   width: 95%;
   height: 95%;
   transition: opacity 180ms ease;
+}
+
+.turnaround-demo-switch .turnaround-demo-straight-rail {
+  transform: rotate(90deg);
 }
 
 .turnaround-demo-switch .turnaround-demo-curve-rail {
@@ -1017,6 +1025,15 @@
 
 .special-cell-asset-goal {
   width: 88%;
+}
+
+.special-cell-asset-tunnel-single {
+  width: 94%;
+  height: 94%;
+}
+
+.special-cell-asset-tunnel-single img {
+  object-fit: contain;
 }
 
 .special-cell-asset-tunnel-entrance {

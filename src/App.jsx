@@ -17,6 +17,7 @@ import stationBuildingImage from './assets/train-game/station-building.png'
 import straightRailImage from './assets/train-game/straight-rail.png'
 import tunnelEntranceRailLeftImage from './assets/train-game/tunnel-entrance-rail-left.png'
 import tunnelMiddleImage from './assets/train-game/tunnel-middle.png'
+import tunnelOnePassImage from './assets/train-game/tunnel-one-pass.png'
 
 const TRAIN_CARS = [
   { key: 'rear', image: blueTrainLeftImage, offset: -0.21 },
@@ -95,7 +96,7 @@ const STAGES = {
   3: {
     title: 'ステージ3',
     description: '直進と高速レールを使う遠回りを比べよう',
-    targetTime: 4,
+    targetTime: 5,
     width: 8,
     height: 8,
     start: { x: 0, y: 2 },
@@ -103,8 +104,7 @@ const STAGES = {
     relayGroups: [
       {
         cells: [
-          { x: 4, y: 2, part: 'entrance-right' },
-          { x: 5, y: 2, part: 'entrance' },
+          { x: 4, y: 2 },
         ],
       },
     ],
@@ -591,6 +591,16 @@ const getBoundedInputValue = (value, wholeNumber = false) => {
   return String(wholeNumber ? Math.floor(boundedNumber) : boundedNumber)
 }
 
+const getRelayGroupOrientation = (relayGroup) => {
+  if (relayGroup.orientation) return relayGroup.orientation
+  if (relayGroup.cells.length === 1) return 'single'
+
+  const firstCell = relayGroup.cells[0]
+  const lastCell = relayGroup.cells[relayGroup.cells.length - 1]
+
+  return firstCell.x === lastCell.x ? 'vertical' : 'horizontal'
+}
+
 const getRailAssetConfig = (connections) => {
   const directions = [...new Set(connections)]
 
@@ -667,6 +677,7 @@ function SpecialCellAsset({ type, label, orientation = 'horizontal' }) {
   const images = {
     start: redStationBuildingImage,
     goal: stationBuildingImage,
+    'tunnel-single': tunnelOnePassImage,
     'tunnel-entrance': tunnelEntranceRailLeftImage,
     'tunnel-entrance-right': tunnelEntranceRailLeftImage,
     'tunnel-middle': tunnelMiddleImage,
@@ -951,11 +962,7 @@ function App() {
 
     return currentStage.relayGroups.flatMap((relayGroup, relayIndex) =>
       relayGroup.cells.map((cell, cellIndex) => {
-        const firstCell = relayGroup.cells[0]
-        const lastCell = relayGroup.cells[relayGroup.cells.length - 1]
-        const orientation =
-          relayGroup.orientation ??
-          (firstCell.x === lastCell.x ? 'vertical' : 'horizontal')
+        const orientation = getRelayGroupOrientation(relayGroup)
 
         return {
           ...cell,
@@ -1009,7 +1016,9 @@ function App() {
     return getRelayCells().some((relayCell) => {
       const direction = getDirectionBetween(position, relayCell)
       const allowedDirections =
-        relayCell.orientation === 'vertical'
+        relayCell.orientation === 'single'
+          ? ['up', 'down', 'left', 'right']
+          : relayCell.orientation === 'vertical'
           ? ['up', 'down']
           : ['left', 'right']
 
@@ -1262,7 +1271,9 @@ function App() {
 
     return connectedRelayCells.every((relayCell) => {
       const allowedDirections =
-        relayCell.orientation === 'vertical'
+        relayCell.orientation === 'single'
+          ? ['up', 'down', 'left', 'right']
+          : relayCell.orientation === 'vertical'
           ? ['up', 'down']
           : ['left', 'right']
 
@@ -2079,7 +2090,9 @@ function App() {
 
     if (relayCell) {
       const tunnelPart =
-        relayCell.cellIndex === 0
+        relayCell.relayLength === 1
+          ? 'tunnel-single'
+          : relayCell.cellIndex === 0
           ? 'tunnel-entrance-right'
           : relayCell.cellIndex === relayCell.relayLength - 1
             ? 'tunnel-entrance'
@@ -2214,11 +2227,7 @@ function App() {
       if (segment.relayIndex === undefined) return []
 
       const relayGroup = currentStage.relayGroups[segment.relayIndex]
-      const firstCell = relayGroup.cells[0]
-      const lastCell = relayGroup.cells[relayGroup.cells.length - 1]
-      const orientation =
-        relayGroup.orientation ??
-        (firstCell.x === lastCell.x ? 'vertical' : 'horizontal')
+      const orientation = getRelayGroupOrientation(relayGroup)
       const nearbyCandidates = relayGroup.cells.flatMap((cell) =>
         orientation === 'vertical'
           ? [
@@ -2241,8 +2250,11 @@ function App() {
           y: Math.floor(index / currentStage.width),
         }),
       ).sort((a, b) => {
-        const distanceA = Math.abs(a.x - firstCell.x) + Math.abs(a.y - firstCell.y)
-        const distanceB = Math.abs(b.x - firstCell.x) + Math.abs(b.y - firstCell.y)
+        const referenceCell = relayGroup.cells[0]
+        const distanceA =
+          Math.abs(a.x - referenceCell.x) + Math.abs(a.y - referenceCell.y)
+        const distanceB =
+          Math.abs(b.x - referenceCell.x) + Math.abs(b.y - referenceCell.y)
         return distanceA - distanceB
       })
       const labelPosition = [...nearbyCandidates, ...fallbackCandidates].find(
@@ -2377,7 +2389,9 @@ function App() {
             : 1
   const specialTutorialKind =
     !tutorialSkipped && !trainRun && !tutorialStep && !currentStage?.isTutorial
-      ? currentStage?.relayGroups?.length > 0 && !currentStage?.isTurnaroundTutorial
+      ? selectedStage === '3' &&
+          currentStage?.relayGroups?.length > 0 &&
+          !currentStage?.isTurnaroundTutorial
           ? 'relay'
           : null
       : null
