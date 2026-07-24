@@ -4,7 +4,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 24px;
+  padding: 18px;
 }
 
 .screen {
@@ -25,6 +25,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  min-height: min(680px, calc(100vh - 48px));
 }
 
 .title-screen {
@@ -40,6 +41,9 @@
 .main-button,
 .game-header button,
 .stage-list button,
+.stage-world-node,
+.stage-world-move-button,
+.stage-world-enter-button,
 .rail-card,
 .clear-rails-button,
 .result-buttons button,
@@ -137,6 +141,7 @@
 .stage-condition-icon,
 .stage-fast-rail-bonus-mark {
   position: absolute;
+  z-index: 4;
   top: 10px;
   width: 34px;
   height: 34px;
@@ -178,23 +183,471 @@
   line-height: 1.5;
 }
 
-.stage-mode-selector {
-  width: min(560px, 100%);
-  margin: 24px auto 0;
+.stage-world {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 430px;
+  grid-template-areas:
+    "help help"
+    "map map"
+    "panel controls";
+  gap: 8px 12px;
+  margin: 10px auto 0;
+}
+
+.stage-world-help {
+  grid-area: help;
+  margin: 0;
+  color: #455a64;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.stage-world-map-window {
+  position: relative;
+  grid-area: map;
+  width: min(100%, var(--stage-world-window-width));
+  margin-inline: auto;
+  border: 4px solid #6d4c41;
+  border-radius: 26px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, #b3e5fc 0 58%, #8bc34a 58% 100%);
+  box-shadow:
+    inset 0 -10px 0 rgb(85 139 47 / 30%),
+    0 12px 24px rgb(38 50 56 / 14%);
+}
+
+.stage-world-map-window::before,
+.stage-world-map-window::after {
+  content: "";
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  bottom: 0;
+  width: 54px;
+  pointer-events: none;
+}
+
+.stage-world-map-window::before {
+  left: 0;
+  background: linear-gradient(90deg, rgb(179 229 252 / 92%), transparent);
+}
+
+.stage-world-map-window::after {
+  right: 0;
+  background: linear-gradient(270deg, rgb(179 229 252 / 92%), transparent);
+}
+
+.stage-world-map {
+  position: relative;
+  isolation: isolate;
+  width: max-content;
+  min-height: 0;
+  grid-template-columns: repeat(var(--stage-world-columns), var(--stage-world-cell));
+  grid-template-rows: repeat(var(--stage-world-rows), var(--stage-world-row));
+  display: grid;
+  gap: var(--stage-world-gap);
+  padding:
+    var(--stage-world-padding-top)
+    var(--stage-world-padding-x)
+    var(--stage-world-padding-bottom);
+  overflow: visible;
+  transform: translateX(calc(var(--stage-world-offset) * -1));
+  transition: transform 520ms cubic-bezier(0.22, 0.8, 0.26, 1);
+}
+
+.stage-world-map::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: auto 18px 26px;
+  height: 44px;
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #795548 0 22px,
+      #8d6e63 22px 44px
+    );
+  box-shadow:
+    0 -88px 0 rgb(121 85 72 / 78%),
+    0 -176px 0 rgb(121 85 72 / 66%);
+  opacity: 0.28;
+}
+
+.stage-world-ground {
+  position: absolute;
+  z-index: 0;
+  right: -24px;
+  bottom: -28px;
+  left: -24px;
+  height: 96px;
+  background:
+    radial-gradient(circle at 18px 18px, rgb(255 255 255 / 28%) 0 8px, transparent 9px),
+    linear-gradient(180deg, #9ccc65, #689f38);
+  opacity: 0.85;
+}
+
+.stage-world-track-layer {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.stage-world-track-shadow,
+.stage-world-track-sleepers,
+.stage-world-track-rails,
+.stage-world-track-gap {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.stage-world-track-shadow {
+  stroke: rgb(62 39 35 / 28%);
+  stroke-width: 30;
+  transform: translateY(5px);
+}
+
+.stage-world-track-sleepers {
+  stroke: #8d6e63;
+  stroke-width: 28;
+  stroke-dasharray: 3 16;
+  stroke-linecap: butt;
+}
+
+.stage-world-track-rails {
+  stroke: #4e342e;
+  stroke-width: 18;
+}
+
+.stage-world-track-gap {
+  stroke: #d7ccc8;
+  stroke-width: 9;
+}
+
+.stage-world-node {
+  position: relative;
+  z-index: 3;
+  min-width: 0;
+  min-height: 72px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  padding: 14px 12px 10px;
+  border: 4px solid #5d4037;
+  border-radius: 16px 16px 20px 20px;
+  color: #263238;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 42px,
+      rgb(93 64 55 / 12%) 42px 47px
+    ),
+    linear-gradient(180deg, #fff8e1, #ffe0b2);
+  box-shadow:
+    0 7px 0 #8d6e63,
+    0 12px 18px rgb(38 50 56 / 20%);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.stage-world-node::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 14px;
+  border-bottom: 3px solid #5d4037;
+  border-radius: 11px 11px 7px 7px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 22%), transparent 45%),
+    linear-gradient(180deg, #ef6c00, #d84315);
+}
+
+.stage-world-node::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  right: 12px;
+  bottom: 7px;
+  left: 12px;
+  height: 8px;
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #6d4c41 0 18px,
+      #8d6e63 18px 24px
+    );
+  opacity: 0.5;
+}
+
+.stage-world-node:hover {
+  border-color: #0288d1;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 42px,
+      rgb(2 119 189 / 14%) 42px 47px
+    ),
+    linear-gradient(180deg, #e1f5fe, #b3e5fc);
+  transform: translateY(-4px);
+}
+
+.stage-world-node.current-stage-world-node {
+  border-color: #ef6c00;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 42px,
+      rgb(191 79 0 / 16%) 42px 47px
+    ),
+    linear-gradient(180deg, #fff3e0, #ffcc80);
+  box-shadow:
+    0 8px 0 #bf4f00,
+    0 0 0 7px rgb(255 193 7 / 26%),
+    0 12px 24px rgb(191 79 0 / 24%);
+  transform: translateY(-6px);
+}
+
+.stage-world-node.completed-stage-card {
+  border-color: #2e7d32;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 42px,
+      rgb(46 125 50 / 14%) 42px 47px
+    ),
+    linear-gradient(180deg, #f1f8e9, #c8e6c9);
+}
+
+.stage-world-node.off-time-stage-card {
+  border-color: #f9a825;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 42px,
+      rgb(245 127 23 / 14%) 42px 47px
+    ),
+    linear-gradient(180deg, #fffde7, #ffe082);
+}
+
+.stage-world-node.tutorial-stage-card {
+  border-color: #ffb300;
+}
+
+.stage-world-node .stage-number {
+  position: relative;
+  z-index: 2;
+  display: block;
+  margin: 0;
+  color: #4e342e;
+  font-size: 36px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.stage-world-node.tutorial-stage-card .stage-number {
+  color: #e65100;
+  font-size: 27px;
+}
+
+.stage-world-node .stage-result-mark {
+  position: absolute;
+  z-index: 3;
+  right: 6px;
+  bottom: 5px;
+  margin: 0;
+  max-width: calc(100% - 12px);
+  padding: 2px 5px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.stage-world-player {
+  position: absolute;
+  z-index: 5;
+  top: -24px;
+  left: 50%;
+  width: 108px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+  filter: drop-shadow(0 6px 5px rgb(38 50 56 / 36%));
+}
+
+.stage-world-player-car {
+  width: 50%;
+  height: 100%;
+  object-fit: contain;
+  transform: scale(1.16);
+  transform-origin: center;
+  user-select: none;
+}
+
+.stage-world-player-car-front {
+  margin-left: -10px;
+}
+
+.stage-world-panel {
+  grid-area: panel;
+  padding: 12px 18px;
+  border: 3px solid #90a4ae;
+  border-radius: 18px;
+  color: #263238;
+  background: #f7fbfc;
+  text-align: left;
+  box-shadow: 0 8px 20px rgb(38 50 56 / 10%);
+}
+
+.stage-world-current-label {
+  display: inline-block;
+  margin-bottom: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #0288d1;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.stage-world-panel h2,
+.stage-world-panel p {
+  margin: 0;
+}
+
+.stage-world-panel h2 {
+  color: #12344d;
+  font-size: 23px;
+}
+
+.stage-world-panel p {
+  margin-top: 4px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.stage-world-panel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.stage-world-panel-tags span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #4e342e;
+  background: #fff3e0;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.stage-world-panel > .stage-result-mark {
+  display: inline-block;
+  margin-top: 7px;
+}
+
+.stage-world-controls {
+  grid-area: controls;
+  width: 100%;
+  display: grid;
+  grid-template-areas: "left enter right";
+  grid-template-columns: 104px minmax(0, 1fr) 104px;
+  gap: 10px;
+  align-items: center;
+  justify-items: center;
+  margin-inline: auto;
   padding: 10px;
+  border: 3px solid #90a4ae;
+  border-radius: 18px;
+  background: #f7fbfc;
+  box-shadow: 0 8px 20px rgb(38 50 56 / 10%);
+}
+
+.stage-world-move-button {
+  width: 104px;
+  height: 72px;
+  border: 3px solid #607d8b;
+  border-radius: 16px;
+  color: #263238;
+  background: linear-gradient(180deg, #ffffff, #e3f2fd);
+  font-size: 22px;
+  font-weight: 900;
+  box-shadow: 0 5px 0 #90a4ae;
+}
+
+.stage-world-move-button:hover:not(:disabled) {
+  border-color: #0288d1;
+  background: #e1f5fe;
+  transform: translateY(-2px);
+}
+
+.stage-world-move-button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #90a4ae;
+}
+
+.stage-world-move-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+  box-shadow: none;
+}
+
+.stage-world-move-right {
+  grid-area: right;
+}
+
+.stage-world-move-left {
+  grid-area: left;
+}
+
+.stage-world-enter-button {
+  grid-area: enter;
+  width: 100%;
+  min-height: 72px;
+  padding-inline: 12px;
+  font-size: 24px;
+}
+
+.stage-mode-selector {
+  width: 100%;
+  margin: 8px auto 0;
+  padding: 7px 9px;
   border: 2px solid #90a4ae;
   border-radius: 14px;
   background: #f5f8f9;
 }
 
+.stage-mode-selector {
+  display: grid;
+  grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
 .stage-mode-selector > div {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 7px;
 }
 
 .stage-mode-selector button {
-  padding: 10px 16px;
+  padding: 8px 14px;
   border: 2px solid transparent;
   border-radius: 10px;
   color: #546e7a;
@@ -210,13 +663,24 @@
 }
 
 .stage-mode-selector p {
-  margin: 8px 4px 0;
+  margin: 0;
   font-size: 14px;
   font-weight: 700;
+  text-align: left;
 }
 
 .stage-select-screen {
+  width: min(1240px, 100%);
+  height: calc(100vh - 16px);
+  min-height: 0;
+  padding: 14px 24px;
+  overflow: hidden;
   transition: color 180ms ease, background 180ms ease;
+}
+
+.stage-select-screen > p {
+  margin: 4px 0 0;
+  font-size: 16px;
 }
 
 .stage-select-screen.estimate-stage-select {
@@ -274,6 +738,141 @@
 .estimate-stage-select .stage-list .off-time-stage-card {
   border-color: #fbc02d;
   background: linear-gradient(145deg, #50482c, #35404a);
+}
+
+.estimate-stage-select .stage-world-help {
+  color: #dceefa;
+}
+
+.estimate-stage-select .stage-world-map-window {
+  border-color: #8da4ba;
+  background:
+    radial-gradient(circle at 14% 24%, rgb(144 202 249 / 28%), transparent 24%),
+    linear-gradient(180deg, #25384d 0 58%, #2e5d53 58% 100%);
+}
+
+.estimate-stage-select .stage-world-map-window::before {
+  background: linear-gradient(90deg, rgb(37 56 77 / 94%), transparent);
+}
+
+.estimate-stage-select .stage-world-map-window::after {
+  background: linear-gradient(270deg, rgb(37 56 77 / 94%), transparent);
+}
+
+.estimate-stage-select .stage-world-map::before {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #90a4ae 0 22px,
+      #78909c 22px 44px
+    );
+  box-shadow:
+    0 -88px 0 rgb(144 164 174 / 42%),
+    0 -176px 0 rgb(144 164 174 / 34%);
+}
+
+.estimate-stage-select .stage-world-track-shadow {
+  stroke: rgb(0 0 0 / 30%);
+}
+
+.estimate-stage-select .stage-world-track-sleepers {
+  stroke: #78909c;
+}
+
+.estimate-stage-select .stage-world-track-rails {
+  stroke: #cfd8dc;
+}
+
+.estimate-stage-select .stage-world-track-gap {
+  stroke: #26384d;
+}
+
+.estimate-stage-select .stage-world-ground {
+  background:
+    radial-gradient(circle at 18px 18px, rgb(255 255 255 / 20%) 0 8px, transparent 9px),
+    linear-gradient(180deg, #3f7168, #244b45);
+}
+
+.estimate-stage-select .stage-world-node {
+  border-color: #6f879e;
+  color: #edf4fa;
+  background: linear-gradient(180deg, #455f79, #31465d);
+  box-shadow:
+    0 8px 0 #1c2938,
+    0 12px 18px rgb(0 0 0 / 24%);
+}
+
+.estimate-stage-select .stage-world-node::before {
+  border-color: #8da4ba;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 16%), transparent 45%),
+    linear-gradient(180deg, #527798, #31465d);
+}
+
+.estimate-stage-select .stage-world-node::after {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #90a4ae 0 18px,
+      #607d8b 18px 24px
+    );
+  opacity: 0.45;
+}
+
+.estimate-stage-select .stage-world-node:hover {
+  border-color: #90caf9;
+  background: linear-gradient(180deg, #527798, #3b5873);
+}
+
+.estimate-stage-select .stage-world-node.current-stage-world-node {
+  border-color: #90caf9;
+  background: linear-gradient(180deg, #dceefa, #90caf9);
+  color: #0d3b5e;
+  box-shadow:
+    0 8px 0 #2f6688,
+    0 0 0 7px rgb(144 202 249 / 22%),
+    0 12px 24px rgb(0 0 0 / 26%);
+}
+
+.estimate-stage-select .stage-world-node .stage-number {
+  color: inherit;
+}
+
+.estimate-stage-select .stage-world-panel {
+  border-color: #7890a8;
+  color: #edf4fa;
+  background: rgb(15 29 43 / 78%);
+}
+
+.estimate-stage-select .stage-world-panel h2 {
+  color: #f4f8fb;
+}
+
+.estimate-stage-select .stage-world-current-label {
+  color: #0d3b5e;
+  background: #90caf9;
+}
+
+.estimate-stage-select .stage-world-panel-tags span {
+  color: #dceefa;
+  background: rgb(144 202 249 / 16%);
+}
+
+.estimate-stage-select .stage-world-move-button {
+  border-color: #7890a8;
+  color: #edf4fa;
+  background: linear-gradient(180deg, #455f79, #31465d);
+  box-shadow: 0 5px 0 #1c2938;
+}
+
+.estimate-stage-select .stage-world-move-button:hover:not(:disabled) {
+  border-color: #90caf9;
+  background: #3b5873;
+}
+
+.estimate-stage-select .stage-world-controls {
+  border-color: #7890a8;
+  background: rgb(15 29 43 / 78%);
 }
 
 .game-screen {
@@ -1773,16 +2372,16 @@
 
 @media (min-width: 900px) {
   .app {
-    align-items: flex-start;
-    padding: 8px;
+    align-items: center;
+    padding: 4px;
   }
 
   .screen.game-screen {
-    width: min(1420px, calc(100vw - 16px));
-    height: calc(100vh - 16px);
+    width: min(1560px, calc(100vw - 8px));
+    height: calc(100vh - 8px);
     min-height: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 420px;
+    grid-template-columns: minmax(0, 1fr) 500px;
     grid-template-areas:
       "header header"
       "board target"
@@ -1798,25 +2397,35 @@
     grid-template-rows: auto repeat(10, min-content);
     align-content: start;
     align-items: start;
-    column-gap: 18px;
-    row-gap: 5px;
-    padding: 10px 16px;
+    column-gap: 12px;
+    row-gap: 6px;
+    padding: 8px 10px;
     overflow: hidden;
   }
 
   .game-header {
     grid-area: header;
-    margin-bottom: 2px;
+    min-height: 48px;
+    margin-bottom: 0;
   }
 
   .game-header h2 {
-    font-size: 25px;
+    font-size: 30px;
+  }
+
+  .game-header button {
+    min-width: 72px;
+    min-height: 50px;
   }
 
   .target-time {
     grid-area: target;
     margin: 0;
-    font-size: 22px;
+    padding: 4px 8px;
+    border: 3px solid #ffab91;
+    border-radius: 14px;
+    background: #fff3e0;
+    font-size: 28px;
   }
 
   .tutorial-guide {
@@ -1846,20 +2455,54 @@
     grid-area: rails;
     width: 100%;
     margin: 0;
+    padding: 12px;
+  }
+
+  .rail-yard-heading h3 {
+    font-size: 22px;
+  }
+
+  .rail-selector {
+    gap: 10px;
+  }
+
+  .rail-card {
+    min-height: 58px;
+    padding: 12px 14px;
+    border-width: 3px;
+    border-radius: 14px;
+  }
+
+  .rail-card > strong {
+    font-size: 19px;
+  }
+
+  .clear-rails-button {
+    min-height: 58px;
+    padding: 12px 14px;
+    border-width: 3px;
+    border-radius: 14px;
+    font-size: 17px;
+  }
+
+  .rail-selection-description {
+    margin-top: 9px;
+    font-size: 16px;
   }
 
   .stage-constraints {
     grid-area: conditions;
     width: 100%;
-    gap: 4px;
+    gap: 6px;
     margin: 0;
-    padding: 6px;
+    padding: 8px;
+    border-width: 3px;
   }
 
   .stage-constraints strong,
   .stage-constraints span {
-    padding: 5px 7px;
-    font-size: 15px;
+    padding: 7px 9px;
+    font-size: 16px;
   }
 
   .grid-map {
@@ -1867,43 +2510,91 @@
     align-self: start;
     justify-self: center;
     max-width: 100%;
-    max-height: calc(100vh - 82px);
+    max-height: calc(100vh - 62px);
+    --grid-gap: 6px;
+    --grid-padding: 12px;
+  }
+
+  .map-cell {
+    border-width: 3px;
+    border-radius: 10px;
+    font-size: clamp(24px, 4.4vw, 42px);
   }
 
   .estimate-memo {
     grid-area: memo;
     width: 100%;
     margin: 0;
+    padding: 9px;
+    border-width: 3px;
+    border-radius: 13px;
+  }
+
+  .estimate-memo-heading h3 {
+    font-size: 18px;
+  }
+
+  .estimate-memo-heading > span {
+    font-size: 12px;
+  }
+
+  .estimate-memo-fields {
+    gap: 6px;
+  }
+
+  .estimate-memo-fields label {
+    grid-template-columns: minmax(0, 1fr) 58px;
+    gap: 5px;
     padding: 6px;
+    font-size: 13px;
+  }
+
+  .estimate-memo input {
+    padding: 5px;
+    font-size: 16px;
+  }
+
+  .estimate-memo-fields small {
+    font-size: 11px;
+  }
+
+  .user-time-estimate {
+    margin-top: 7px;
+    font-size: 15px;
+  }
+
+  .user-time-estimate-input input {
+    width: 82px;
+    font-size: 17px;
   }
 
   .estimate-mode .estimate-memo-fields label {
-    padding: 3px 4px;
+    padding: 5px 6px;
   }
 
   .time-panel {
     grid-area: time;
     width: 100%;
-    gap: 2px 10px;
+    gap: 4px 12px;
     margin: 0;
-    padding: 9px 11px;
+    padding: 13px 15px;
     border-width: 3px;
-    border-radius: 13px;
-    box-shadow: 0 4px 0 #f57f17;
+    border-radius: 16px;
+    box-shadow: 0 5px 0 #f57f17;
   }
 
   .time-panel-label {
-    padding: 4px 8px;
-    font-size: 14px;
+    padding: 6px 10px;
+    font-size: 16px;
   }
 
   .time-panel-scope {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .time-panel strong,
   .time-panel-waiting strong {
-    font-size: 32px;
+    font-size: 42px;
   }
 
   .route-segment-times {
@@ -1913,47 +2604,54 @@
 
   .route-segment-times > span {
     min-width: 0;
-    flex: 1 1 96px;
-    padding: 3px 5px;
+    flex: 1 1 112px;
+    padding: 5px 7px;
   }
 
   .route-segment-times small,
   .route-segment-times b {
-    font-size: 14px;
+    font-size: 15px;
   }
 
   .time-panel-note {
-    margin-top: 3px;
-    font-size: 14px;
+    margin-top: 4px;
+    font-size: 15px;
   }
 
   .rail-info {
     grid-area: info;
     width: 100%;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 3px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
     margin: 0;
-    padding: 4px;
+    padding: 6px;
+    border-width: 3px;
+    border-radius: 14px;
   }
 
   .rail-info-item {
-    flex-direction: column;
-    gap: 1px;
-    padding: 2px;
-    font-size: 9px;
+    flex-direction: row;
+    gap: 5px;
+    padding: 6px;
+    font-size: 13px;
   }
 
   .rail-info-item img {
-    width: 24px;
-    height: 24px;
-    flex-basis: 24px;
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
   }
 
   .train-status {
     grid-area: status;
     width: 100%;
     margin: 0;
-    padding: 5px 8px;
+    padding: 8px 12px;
+    border-width: 3px;
+    font-size: 18px;
+  }
+
+  .train-status span {
     font-size: 15px;
   }
 
@@ -1961,15 +2659,18 @@
     grid-area: message;
     width: 100%;
     margin: 0;
-    padding: 6px 8px;
-    font-size: 15px;
+    padding: 9px 12px;
+    border-width: 3px;
+    font-size: 17px;
   }
 
   .game-screen > .main-button {
     grid-area: depart;
     justify-self: center;
-    padding: 8px 28px;
-    font-size: 22px;
+    width: min(100%, 360px);
+    min-height: 62px;
+    padding: 10px 36px;
+    font-size: 28px;
   }
 }
 
@@ -1983,6 +2684,13 @@
     min-height: calc(100vh - 20px);
     padding: 24px 14px;
     border-radius: 14px;
+  }
+
+  .stage-select-screen {
+    height: auto;
+    min-height: calc(100vh - 20px);
+    padding: 24px 14px;
+    overflow: visible;
   }
 
   .tutorial-guide {
@@ -2012,6 +2720,122 @@
 
   .stage-list button {
     min-height: 100px;
+  }
+
+  .stage-mode-selector {
+    width: min(560px, 100%);
+    display: block;
+    margin-top: 24px;
+    padding: 10px;
+  }
+
+  .stage-mode-selector > div {
+    gap: 8px;
+  }
+
+  .stage-mode-selector button {
+    padding: 10px 16px;
+  }
+
+  .stage-mode-selector p {
+    margin: 8px 4px 0;
+    text-align: center;
+  }
+
+  .stage-world {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "help"
+      "map"
+      "panel"
+      "controls";
+    gap: 14px;
+    margin-top: 24px;
+  }
+
+  .stage-world-map-window {
+    border-width: 3px;
+    border-radius: 18px;
+  }
+
+  .stage-world-map {
+    grid-template-columns: repeat(var(--stage-world-columns), var(--stage-world-cell));
+    grid-template-rows: repeat(var(--stage-world-rows), var(--stage-world-row));
+    gap: var(--stage-world-gap);
+    min-height: 250px;
+    padding:
+      var(--stage-world-padding-top)
+      var(--stage-world-padding-x)
+      var(--stage-world-padding-bottom);
+  }
+
+  .stage-world-node {
+    min-height: 58px;
+    padding: 8px 4px;
+    border-width: 3px;
+    border-radius: 16px;
+    box-shadow:
+      0 5px 0 #8d6e63,
+      0 8px 14px rgb(38 50 56 / 18%);
+  }
+
+  .stage-world-node .stage-number {
+    font-size: 20px;
+  }
+
+  .stage-world-node.tutorial-stage-card .stage-number {
+    font-size: 14px;
+  }
+
+  .stage-condition-icon,
+  .stage-fast-rail-bonus-mark {
+    top: 4px;
+    width: 24px;
+    height: 24px;
+    font-size: 13px;
+  }
+
+  .stage-condition-icon {
+    left: 4px;
+  }
+
+  .stage-fast-rail-bonus-mark {
+    right: 4px;
+  }
+
+  .stage-world-player {
+    top: -22px;
+    width: 82px;
+    height: 42px;
+  }
+
+  .stage-world-player-car-front {
+    margin-left: -8px;
+  }
+
+  .stage-world-panel {
+    padding: 14px;
+  }
+
+  .stage-world-panel h2 {
+    font-size: 22px;
+  }
+
+  .stage-world-controls {
+    width: 100%;
+    grid-template-columns: 72px minmax(150px, 1fr) 72px;
+    gap: 8px;
+  }
+
+  .stage-world-move-button {
+    width: 70px;
+    height: 50px;
+    font-size: 17px;
+  }
+
+  .stage-world-enter-button {
+    padding: 10px 14px;
+    font-size: 18px;
   }
 
   .game-header {

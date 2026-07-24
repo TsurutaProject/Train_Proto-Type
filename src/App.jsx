@@ -478,6 +478,68 @@ const STAGE_ORDER = [
   '16',
 ]
 
+const STAGE_WORLD_COLUMNS = STAGE_ORDER.length
+const STAGE_WORLD_ROWS = 3
+const STAGE_WORLD_VISIBLE_COLUMNS = 4
+const STAGE_WORLD_CELL_PX = 250
+const STAGE_WORLD_ROW_PX = 72
+const STAGE_WORLD_GAP_PX = 24
+const STAGE_WORLD_PADDING_X_PX = 28
+const STAGE_WORLD_PADDING_TOP_PX = 24
+const STAGE_WORLD_PADDING_BOTTOM_PX = 14
+const STAGE_WORLD_COLUMN_STEP_PX = STAGE_WORLD_CELL_PX + STAGE_WORLD_GAP_PX
+const STAGE_WORLD_WINDOW_WIDTH_PX =
+  STAGE_WORLD_VISIBLE_COLUMNS * STAGE_WORLD_CELL_PX +
+  (STAGE_WORLD_VISIBLE_COLUMNS - 1) * STAGE_WORLD_GAP_PX +
+  STAGE_WORLD_PADDING_X_PX * 2
+const STAGE_WORLD_MAP_WIDTH_PX =
+  STAGE_WORLD_COLUMNS * STAGE_WORLD_CELL_PX +
+  (STAGE_WORLD_COLUMNS - 1) * STAGE_WORLD_GAP_PX +
+  STAGE_WORLD_PADDING_X_PX * 2
+const STAGE_WORLD_MAP_HEIGHT_PX =
+  STAGE_WORLD_ROWS * STAGE_WORLD_ROW_PX +
+  (STAGE_WORLD_ROWS - 1) * STAGE_WORLD_GAP_PX +
+  STAGE_WORLD_PADDING_TOP_PX +
+  STAGE_WORLD_PADDING_BOTTOM_PX
+const STAGE_WORLD_NODES = [
+  { stageNumber: 'tutorial', x: 0, y: 1 },
+  { stageNumber: '1', x: 1, y: 1 },
+  { stageNumber: '2', x: 2, y: 1 },
+  { stageNumber: '3', x: 3, y: 0 },
+  { stageNumber: '4', x: 4, y: 0 },
+  { stageNumber: '5', x: 5, y: 1 },
+  { stageNumber: '6', x: 6, y: 1 },
+  { stageNumber: '7', x: 7, y: 2 },
+  { stageNumber: '8', x: 8, y: 2 },
+  { stageNumber: '9', x: 9, y: 1 },
+  { stageNumber: '10', x: 10, y: 1 },
+  { stageNumber: '11', x: 11, y: 0 },
+  { stageNumber: '12', x: 12, y: 0 },
+  { stageNumber: '13', x: 13, y: 1 },
+  { stageNumber: '14', x: 14, y: 1 },
+  { stageNumber: '15', x: 15, y: 2 },
+  { stageNumber: '16', x: 16, y: 2 },
+]
+
+const STAGE_WORLD_TRACK_POINTS = STAGE_WORLD_NODES.map((node) => ({
+  x:
+    STAGE_WORLD_PADDING_X_PX +
+    node.x * STAGE_WORLD_COLUMN_STEP_PX +
+    STAGE_WORLD_CELL_PX / 2,
+  y:
+    STAGE_WORLD_PADDING_TOP_PX +
+    node.y * (STAGE_WORLD_ROW_PX + STAGE_WORLD_GAP_PX) +
+    STAGE_WORLD_ROW_PX / 2,
+}))
+const STAGE_WORLD_TRACK_PATH = STAGE_WORLD_TRACK_POINTS.map(
+  (point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`,
+).join(' ')
+
+const getStageWorldIndexForStageId = (stageId) => {
+  const stageNumber = stageId === 'estimateTutorial' ? 'tutorial' : stageId
+  return STAGE_WORLD_NODES.findIndex((node) => node.stageNumber === stageNumber)
+}
+
 const RAIL_TYPES = {
   slow: {
     label: '低速レール',
@@ -737,6 +799,7 @@ const RUBY_DEFINITIONS = {
   準備完了: 'じゅんびかんりょう',
   計算結果: 'けいさんけっか',
   選択中: 'せんたくちゅう',
+  現在地: 'げんざいち',
   最終予想時間: 'さいしゅうよそうじかん',
   区間時間: 'くかんじかん',
   再生: 'さいせい',
@@ -780,6 +843,7 @@ const RUBY_DEFINITIONS = {
   表示: 'ひょうじ',
   場所: 'ばしょ',
   役割: 'やくわり',
+  移動: 'いどう',
   設置: 'せっち',
   方向: 'ほうこう',
   途中: 'とちゅう',
@@ -791,6 +855,7 @@ const RUBY_DEFINITIONS = {
   内訳: 'うちわけ',
   縦: 'たて',
   横: 'よこ',
+  横長: 'よこなが',
   岩: 'いわ',
   木: 'き',
   全: 'すべ',
@@ -798,6 +863,7 @@ const RUBY_DEFINITIONS = {
   列: 'れつ',
   右: 'みぎ',
   左: 'ひだり',
+  左右: 'さゆう',
   上下: 'じょうげ',
   秒: 'びょう',
   本: 'ほん',
@@ -833,6 +899,142 @@ const RUBY_DEFINITIONS = {
   残: 'のこ',
 }
 
+const KANJI_RUBY_DEFINITIONS = {
+  一: 'いち',
+  上: 'じょう',
+  下: 'げ',
+  中: 'ちゅう',
+  了: 'りょう',
+  予: 'よ',
+  以: 'い',
+  件: 'けん',
+  位: 'い',
+  低: 'てい',
+  価: 'か',
+  倍: 'ばい',
+  備: 'び',
+  先: 'さき',
+  入: 'にゅう',
+  内: 'ない',
+  再: 'さい',
+  出: 'しゅつ',
+  分: 'ぶん',
+  別: 'べつ',
+  到: 'とう',
+  前: 'まえ',
+  力: 'りょく',
+  加: 'か',
+  区: 'く',
+  半: 'はん',
+  回: 'かい',
+  地: 'ち',
+  場: 'ば',
+  変: 'か',
+  外: 'がい',
+  完: 'かん',
+  実: 'じつ',
+  害: 'がい',
+  常: 'じょう',
+  度: 'ど',
+  後: 'あと',
+  必: 'かなら',
+  少: 'すこ',
+  想: 'そう',
+  戦: 'せん',
+  所: 'しょ',
+  扱: 'あつか',
+  抜: 'ぬ',
+  択: 'たく',
+  押: 'お',
+  挑: 'ちょう',
+  接: 'せつ',
+  操: 'そう',
+  攻: 'こう',
+  数: 'すう',
+  早: 'はや',
+  明: 'めい',
+  時: 'じ',
+  曲: 'ま',
+  最: 'さい',
+  未: 'み',
+  条: 'じょう',
+  果: 'か',
+  標: 'ひょう',
+  次: 'つぎ',
+  混: 'こん',
+  済: 'ず',
+  満: 'み',
+  準: 'じゅん',
+  点: 'てん',
+  物: 'ぶつ',
+  生: 'せい',
+  画: 'が',
+  略: 'りゃく',
+  発: 'はつ',
+  盤: 'ばん',
+  目: 'もく',
+  直: 'ちょく',
+  着: 'ちゃく',
+  短: 'たん',
+  確: 'かく',
+  示: 'じ',
+  積: 'つ',
+  算: 'さん',
+  節: 'せつ',
+  約: 'やく',
+  終: 'しゅう',
+  経: 'けい',
+  結: 'けつ',
+  継: 'けい',
+  続: 'つづ',
+  練: 'れん',
+  績: 'せき',
+  繰: 'く',
+  置: 'お',
+  習: 'しゅう',
+  自: 'じ',
+  色: 'いろ',
+  行: 'ぎょう',
+  表: 'ひょう',
+  複: 'ふく',
+  要: 'よう',
+  計: 'けい',
+  訳: 'わけ',
+  評: 'ひょう',
+  試: 'ため',
+  認: 'にん',
+  説: 'せつ',
+  読: 'よ',
+  走: 'そう',
+  路: 'ろ',
+  車: 'しゃ',
+  較: 'かく',
+  込: 'こ',
+  迂: 'う',
+  近: 'ちか',
+  追: 'つい',
+  透: 'とう',
+  途: 'と',
+  通: 'つう',
+  速: 'そく',
+  連: 'れん',
+  過: 'か',
+  道: 'みち',
+  違: 'ちが',
+  遠: 'とお',
+  長: 'なが',
+  配: 'はい',
+  間: 'かん',
+  際: 'さい',
+  障: 'しょう',
+  雑: 'ざつ',
+  電: 'でん',
+  面: 'めん',
+  項: 'こう',
+  高: 'こう',
+  黄: 'き',
+}
+
 const RUBY_TOKENS = Object.keys(RUBY_DEFINITIONS).sort(
   (a, b) => b.length - a.length,
 )
@@ -859,7 +1061,20 @@ function RubyText({ children, text }) {
       )
       index += token.length
     } else {
-      parts.push(value[index])
+      const character = value[index]
+      const characterRuby =
+        RUBY_DEFINITIONS[character] ?? KANJI_RUBY_DEFINITIONS[character]
+
+      if (characterRuby && /\p{Script=Han}/u.test(character)) {
+        parts.push(
+          <ruby key={`${character}-${index}`}>
+            {character}
+            <rt>{characterRuby}</rt>
+          </ruby>,
+        )
+      } else {
+        parts.push(character)
+      }
       index += 1
     }
   }
@@ -911,6 +1126,7 @@ function App() {
   const [ghostMotion, setGhostMotion] = useState(null)
   const [stageResults, setStageResults] = useState(loadStageResults)
   const [estimateMode, setEstimateMode] = useState(false)
+  const [stageWorldIndex, setStageWorldIndex] = useState(0)
   const [estimateRevealed, setEstimateRevealed] = useState(false)
   const [userEstimatedTime, setUserEstimatedTime] = useState('')
   const [estimateMemo, setEstimateMemo] = useState(EMPTY_ESTIMATE_MEMO)
@@ -938,6 +1154,10 @@ function App() {
   }, [stageResults])
 
   const startStage = (stageNumber) => {
+    const worldIndex = getStageWorldIndexForStageId(stageNumber)
+
+    if (worldIndex >= 0) setStageWorldIndex(worldIndex)
+
     setSelectedStage(stageNumber)
     setSelectedRailType('slow')
     setPlacedRails([])
@@ -953,6 +1173,14 @@ function App() {
     setTurnaroundDemoOpen(false)
     setTurnaroundDemoPlaying(false)
     setScreen('game')
+  }
+
+  const openStageSelect = () => {
+    const worldIndex = getStageWorldIndexForStageId(selectedStage)
+
+    if (worldIndex >= 0) setStageWorldIndex(worldIndex)
+
+    setScreen('stageSelect')
   }
 
   const isSamePosition = (a, b) => a.x === b.x && a.y === b.y
@@ -2551,6 +2779,51 @@ function App() {
     }
     return false
   }
+  const getStageIdForWorldNode = (node) =>
+    node.stageNumber === 'tutorial' && estimateMode
+      ? 'estimateTutorial'
+      : node.stageNumber
+  const getStageWorldNeighborIndex = (fromIndex, direction) => {
+    if (direction === 'left') return fromIndex > 0 ? fromIndex - 1 : -1
+    if (direction === 'right') {
+      return fromIndex < STAGE_WORLD_NODES.length - 1 ? fromIndex + 1 : -1
+    }
+
+    return -1
+  }
+  const moveStageWorld = (direction) => {
+    setStageWorldIndex((currentIndex) => {
+      const nextIndex = getStageWorldNeighborIndex(currentIndex, direction)
+      return nextIndex >= 0 ? nextIndex : currentIndex
+    })
+  }
+  const selectedStageWorldNode =
+    STAGE_WORLD_NODES[stageWorldIndex] ?? STAGE_WORLD_NODES[0]
+  const selectedStageWorldId = getStageIdForWorldNode(selectedStageWorldNode)
+  const selectedStageWorldStage = STAGES[selectedStageWorldId]
+  const selectedStageWorldResult =
+    stageResults[getStageResultKey(selectedStageWorldId, estimateMode)]
+  const selectedStageWorldCleared = isStageCleared(
+    selectedStageWorldStage,
+    selectedStageWorldResult,
+  )
+  const selectedStageWorldBonusMark = getStageFastRailBonusMark(
+    selectedStageWorldStage,
+    selectedStageWorldResult,
+  )
+  const stageWorldOffsetColumns = Math.min(
+    Math.max(
+      selectedStageWorldNode.x - (STAGE_WORLD_VISIBLE_COLUMNS - 1) / 2,
+      0,
+    ),
+    STAGE_WORLD_COLUMNS - STAGE_WORLD_VISIBLE_COLUMNS,
+  )
+  const stageWorldOffsetPx =
+    Math.round(stageWorldOffsetColumns * STAGE_WORLD_COLUMN_STEP_PX)
+  const stageWorldCanMove = {
+    right: getStageWorldNeighborIndex(stageWorldIndex, 'right') >= 0,
+    left: getStageWorldNeighborIndex(stageWorldIndex, 'left') >= 0,
+  }
   const selectedStageOrderKey =
     selectedStage === 'estimateTutorial' ? 'tutorial' : selectedStage
   const selectedStageOrderIndex = STAGE_ORDER.findIndex(
@@ -2681,57 +2954,192 @@ function App() {
             </p>
           </section>
 
-          <div className="stage-list">
-            {STAGE_ORDER.map((stageNumber) => {
-              const stageId =
-                stageNumber === 'tutorial' && estimateMode
-                  ? 'estimateTutorial'
-                  : stageNumber
-              const stage = STAGES[stageId]
-              const stageResult =
-                stageResults[getStageResultKey(stageId, estimateMode)]
-              const stageCleared = isStageCleared(stage, stageResult)
-              const fastRailBonusMark = getStageFastRailBonusMark(
-                stage,
-                stageResult,
-              )
-              return (
-                <button
-                  key={stageNumber}
-                  className={`${stage.isTutorial || stage.isTurnaroundTutorial ? 'tutorial-stage-card' : ''} ${stageCleared ? 'completed-stage-card' : ''} ${stageResult && Math.abs(stageResult.difference) >= EXACT_TIME_TOLERANCE ? 'off-time-stage-card' : ''}`}
-                  onClick={() => startStage(stageId)}
+          <section className="stage-world" aria-label="ステージ移動マップ">
+            <p className="stage-world-help">
+              <RubyText>左右ボタンで横長マップを少しずつ移動します</RubyText>
+            </p>
+
+            <div
+              className="stage-world-map-window"
+              style={{
+                '--stage-world-window-width': `${STAGE_WORLD_WINDOW_WIDTH_PX}px`,
+              }}
+            >
+              <div
+                className="stage-world-map"
+                style={{
+                  '--stage-world-columns': String(STAGE_WORLD_COLUMNS),
+                  '--stage-world-rows': String(STAGE_WORLD_ROWS),
+                  '--stage-world-cell': `${STAGE_WORLD_CELL_PX}px`,
+                  '--stage-world-gap': `${STAGE_WORLD_GAP_PX}px`,
+                  '--stage-world-padding-x': `${STAGE_WORLD_PADDING_X_PX}px`,
+                  '--stage-world-row': `${STAGE_WORLD_ROW_PX}px`,
+                  '--stage-world-padding-top': `${STAGE_WORLD_PADDING_TOP_PX}px`,
+                  '--stage-world-padding-bottom': `${STAGE_WORLD_PADDING_BOTTOM_PX}px`,
+                  '--stage-world-offset': `${stageWorldOffsetPx}px`,
+                }}
+              >
+                <div className="stage-world-ground" aria-hidden="true" />
+                <svg
+                  className="stage-world-track-layer"
+                  viewBox={`0 0 ${STAGE_WORLD_MAP_WIDTH_PX} ${STAGE_WORLD_MAP_HEIGHT_PX}`}
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
                 >
-                  <span
-                    className="stage-condition-icon"
-                    aria-label={
-                      getClearCondition(stage) === 'within'
-                        ? '時間以内でゴールする'
-                        : '時間ぴったりでゴールする'
-                    }
-                  >
-                    {getStageClearConditionIcon(stage)}
-                  </span>
-                  {fastRailBonusMark && (
-                    <span
-                      className="stage-fast-rail-bonus-mark"
-                      aria-label={`追加評価 ${fastRailBonusMark}`}
+                  <path
+                    className="stage-world-track-shadow"
+                    d={STAGE_WORLD_TRACK_PATH}
+                  />
+                  <path
+                    className="stage-world-track-sleepers"
+                    d={STAGE_WORLD_TRACK_PATH}
+                  />
+                  <path
+                    className="stage-world-track-rails"
+                    d={STAGE_WORLD_TRACK_PATH}
+                  />
+                  <path
+                    className="stage-world-track-gap"
+                    d={STAGE_WORLD_TRACK_PATH}
+                  />
+                </svg>
+                {STAGE_WORLD_NODES.map((node, index) => {
+                  const stageId = getStageIdForWorldNode(node)
+                  const stage = STAGES[stageId]
+                  const stageResult =
+                    stageResults[getStageResultKey(stageId, estimateMode)]
+                  const stageCleared = isStageCleared(stage, stageResult)
+                  const fastRailBonusMark = getStageFastRailBonusMark(
+                    stage,
+                    stageResult,
+                  )
+                  const isCurrentWorldNode = index === stageWorldIndex
+
+                  return (
+                    <button
+                      key={node.stageNumber}
+                      type="button"
+                      className={`stage-world-node ${isCurrentWorldNode ? 'current-stage-world-node' : ''} ${stage.isTutorial || stage.isTurnaroundTutorial ? 'tutorial-stage-card' : ''} ${stageCleared ? 'completed-stage-card' : ''} ${stageResult && Math.abs(stageResult.difference) >= EXACT_TIME_TOLERANCE ? 'off-time-stage-card' : ''}`}
+                      style={{
+                        gridColumn: node.x + 1,
+                        gridRow: node.y + 1,
+                      }}
+                      aria-label={`${stage.title}へ移動`}
+                      aria-current={isCurrentWorldNode ? 'step' : undefined}
+                      onClick={() => setStageWorldIndex(index)}
                     >
-                      {fastRailBonusMark}
-                    </span>
-                  )}
-                  <span className="stage-number">
-                    <RubyText text={String(stage.badge ?? stageNumber)} />
+                      <span
+                        className="stage-condition-icon"
+                        aria-label={
+                          getClearCondition(stage) === 'within'
+                            ? '時間以内でゴールする'
+                            : '時間ぴったりでゴールする'
+                        }
+                      >
+                        {getStageClearConditionIcon(stage)}
+                      </span>
+                      {fastRailBonusMark && (
+                        <span
+                          className="stage-fast-rail-bonus-mark"
+                          aria-label={`追加評価 ${fastRailBonusMark}`}
+                        >
+                          {fastRailBonusMark}
+                        </span>
+                      )}
+                      <span className="stage-number">
+                        <RubyText text={String(stage.badge ?? node.stageNumber)} />
+                      </span>
+                      {stageResult && (
+                        <em className="stage-result-mark">
+                          <RubyText text={getStageResultLabel(stage, stageResult)} />
+                        </em>
+                      )}
+                      {isCurrentWorldNode && (
+                        <span className="stage-world-player" aria-hidden="true">
+                          <img
+                            className="stage-world-player-car stage-world-player-car-rear"
+                            src={blueTrainLeftImage}
+                            alt=""
+                          />
+                          <img
+                            className="stage-world-player-car stage-world-player-car-front"
+                            src={blueTrainRightImage}
+                            alt=""
+                          />
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="stage-world-panel">
+              <span className="stage-world-current-label">
+                <RubyText>現在地</RubyText>
+              </span>
+              <h2><RubyText text={selectedStageWorldStage.title} /></h2>
+              <p><RubyText text={selectedStageWorldStage.description} /></p>
+              <div className="stage-world-panel-tags">
+                <span>
+                  <RubyText
+                    text={
+                      getClearCondition(selectedStageWorldStage) === 'within'
+                        ? '時間以内でゴール'
+                        : '時間ぴったりでゴール'
+                    }
+                  />
+                </span>
+                <span>
+                  <RubyText text={`目標 ${selectedStageWorldStage.targetTime}秒`} />
+                </span>
+                {selectedStageWorldCleared && (
+                  <span><RubyText>クリア済み</RubyText></span>
+                )}
+                {selectedStageWorldBonusMark && (
+                  <span>
+                    <RubyText text={`追加評価 ${selectedStageWorldBonusMark}`} />
                   </span>
-                  <small><RubyText text={stage.description} /></small>
-                  {stageResult && (
-                    <em className="stage-result-mark">
-                      <RubyText text={getStageResultLabel(stage, stageResult)} />
-                    </em>
-                  )}
-                </button>
-              )
-            })}
-          </div>
+                )}
+              </div>
+              {selectedStageWorldResult && (
+                <em className="stage-result-mark">
+                  <RubyText
+                    text={getStageResultLabel(
+                      selectedStageWorldStage,
+                      selectedStageWorldResult,
+                    )}
+                  />
+                </em>
+              )}
+            </div>
+
+            <div className="stage-world-controls" aria-label="移動ボタン">
+              <button
+                type="button"
+                className="stage-world-move-button stage-world-move-left"
+                disabled={!stageWorldCanMove.left}
+                onClick={() => moveStageWorld('left')}
+              >
+                <RubyText>前へ</RubyText>
+              </button>
+              <button
+                type="button"
+                className="main-button stage-world-enter-button"
+                onClick={() => startStage(selectedStageWorldId)}
+              >
+                <RubyText>このステージへ入る</RubyText>
+              </button>
+              <button
+                type="button"
+                className="stage-world-move-button stage-world-move-right"
+                disabled={!stageWorldCanMove.right}
+                onClick={() => moveStageWorld('right')}
+              >
+                <RubyText>次へ</RubyText>
+              </button>
+            </div>
+          </section>
 
         </div>
       )}
@@ -2744,7 +3152,7 @@ function App() {
               aria-label="ステージ一覧を開く"
               title="ステージ一覧"
               disabled={Boolean(trainRun)}
-              onClick={() => setScreen('stageSelect')}
+              onClick={openStageSelect}
             >
               <StageListIcon />
             </button>
@@ -2944,7 +3352,7 @@ function App() {
             className={`grid-map ${trainRun ? 'train-running' : ''} ${selectedRailType === 'slow' && !trainRun ? 'slow-drag-enabled' : ''}`}
             style={{
               gridTemplateColumns: `repeat(${currentStage.width}, 1fr)`,
-              width: `min(100%, ${(currentStage.width / currentStage.height) * 78}vh)`,
+              width: `min(100%, ${(currentStage.width / currentStage.height) * 82}vh)`,
             }}
             onPointerDown={startSlowRailDrag}
             onPointerMove={continueSlowRailDrag}
@@ -3354,7 +3762,7 @@ function App() {
               <button
                 aria-label="ステージ一覧を開く"
                 title="ステージ一覧"
-                onClick={() => setScreen('stageSelect')}
+                onClick={openStageSelect}
               >
                 <StageListIcon />
               </button>
