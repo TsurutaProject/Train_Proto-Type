@@ -545,21 +545,6 @@ const isStageCleared = (stage, stageResult) => {
     : Math.abs(stageResult.difference) < EXACT_TIME_TOLERANCE
 }
 
-const getStageResultLabel = (stage, stageResult) => {
-  if (getClearCondition(stage) === 'within') {
-    return stageResult.difference <= EXACT_TIME_TOLERANCE
-      ? '✓ 時間以内'
-      : `${stageResult.difference.toFixed(1)}秒早くできそう`
-  }
-
-  if (Math.abs(stageResult.difference) < EXACT_TIME_TOLERANCE) {
-    return '✓ 時間ぴったり'
-  }
-
-  const seconds = Math.abs(stageResult.difference).toFixed(1)
-  return `${seconds}秒${stageResult.difference > 0 ? '早く' : 'ゆっくり'}できそう`
-}
-
 const getStageClearConditionIcon = (stage) =>
   getClearCondition(stage) === 'within' ? '⌛' : '🕘'
 
@@ -2722,10 +2707,9 @@ function App() {
                   <span className="stage-number">
                     <RubyText text={String(stage.badge ?? stageNumber)} />
                   </span>
-                  <small><RubyText text={stage.description} /></small>
-                  {stageResult && (
-                    <em className="stage-result-mark">
-                      <RubyText text={getStageResultLabel(stage, stageResult)} />
+                  {stageCleared && (
+                    <em className="stage-result-mark" aria-label="クリア済み">
+                      ✓
                     </em>
                   )}
                 </button>
