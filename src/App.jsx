@@ -607,6 +607,13 @@ const getDirectionBetween = (from, to) => {
 
 const getClearCondition = (stage) => stage.clearCondition ?? 'exact'
 
+const isExactTimeResult = (stageResult) =>
+  Boolean(
+    stageResult &&
+      Number.isFinite(stageResult.difference) &&
+      Math.abs(stageResult.difference) <= EXACT_TIME_TOLERANCE,
+  )
+
 const isStageCleared = (stage, stageResult) => {
   if (!stageResult) return false
 
@@ -617,7 +624,7 @@ const isStageCleared = (stage, stageResult) => {
       true,
       EXACT_TIME_TOLERANCE,
     )
-    : Math.abs(stageResult.difference) < EXACT_TIME_TOLERANCE
+    : isExactTimeResult(stageResult)
 }
 
 const getEarlyArrivalSeconds = (stageResult) => {
@@ -640,6 +647,10 @@ const getEarlyArrivalSeconds = (stageResult) => {
 }
 
 const getStageResultLabel = (stage, stageResult) => {
+  if (isExactTimeResult(stageResult)) {
+    return '✓ 時間ぴったり'
+  }
+
   if (getClearCondition(stage) === 'within') {
     return stageResult.difference <= EXACT_TIME_TOLERANCE
       ? `${getEarlyArrivalSeconds(stageResult).toFixed(1)}秒早く到着`
@@ -669,12 +680,12 @@ const getStageResultKey = (stageId, isEstimateMode) => {
 
 const getResultTone = (stageResult) => {
   if (!stageResult?.cleared) return 'miss'
-  return stageResult.clearCondition === 'exact' ? 'perfect' : 'early'
+  return isExactTimeResult(stageResult) ? 'perfect' : 'early'
 }
 
 const getResultStatusLabel = (stageResult) => {
   if (!stageResult?.cleared) return '条件未達成'
-  return stageResult.clearCondition === 'exact' ? '時間ぴったり' : '時間以内'
+  return isExactTimeResult(stageResult) ? '時間ぴったり' : '時間以内'
 }
 
 const normalizeStageResult = (stageResult) => ({
@@ -2362,16 +2373,16 @@ function App() {
   const getResultMessage = () => {
     if (!result) return ''
 
+    if (result.cleared && isExactTimeResult(result)) {
+      return '時間ぴったり！'
+    }
+
     if (result.clearCondition === 'within') {
       if (!result.cleared) {
         return `${Math.abs(result.difference).toFixed(1)}秒早くできそう`
       }
 
       return `${getEarlyArrivalSeconds(result).toFixed(1)}秒早く到着！`
-    }
-
-    if (Math.abs(result.difference) < EXACT_TIME_TOLERANCE) {
-      return '時間ぴったり！'
     }
 
     const seconds = Math.abs(result.difference).toFixed(1)
@@ -2869,8 +2880,9 @@ function App() {
     const stageResult = stageResults[getStageResultKey(stageId, estimateMode)]
     const stageCleared = isStageCleared(stage, stageResult)
     const fastRailBonusMark = getStageFastRailBonusMark(stage, stageResult)
+    const stageExactTime = isExactTimeResult(stageResult)
     const stageWorldStatus =
-      stageCleared && getClearCondition(stage) === 'exact'
+      stageCleared && stageExactTime
         ? 'cleared'
         : stageResult
           ? 'improve'
@@ -2884,6 +2896,7 @@ function App() {
       stage,
       stageResult,
       stageCleared,
+      stageExactTime,
       fastRailBonusMark,
       stageWorldStatus,
     }
@@ -3095,21 +3108,23 @@ function App() {
                     stage,
                     stageResult,
                     stageCleared,
+                    stageExactTime,
                     fastRailBonusMark,
                     stageWorldStatus,
                   } = node
                   const isCurrentWorldNode = index === stageWorldIndex
-                  const isExactStageCleared =
-                    stageCleared && getClearCondition(stage) === 'exact'
+                  const isPerfectStageCleared = stageCleared && stageExactTime
                   const isEarlyWithinStage =
-                    stageCleared && getClearCondition(stage) === 'within'
+                    stageCleared &&
+                    getClearCondition(stage) === 'within' &&
+                    !stageExactTime
                   const isStageConditionUnmet = Boolean(stageResult) && !stageCleared
 
                   return (
                     <button
                       key={node.stageNumber}
                       type="button"
-                      className={`stage-world-node stage-world-node-${stageWorldStatus} ${isCurrentWorldNode ? 'current-stage-world-node' : ''} ${stage.isTutorial || stage.isTurnaroundTutorial ? 'tutorial-stage-card' : ''} ${isExactStageCleared ? 'completed-stage-card' : ''} ${isEarlyWithinStage ? 'early-arrival-stage-card' : ''} ${isStageConditionUnmet ? 'off-time-stage-card' : ''}`}
+                      className={`stage-world-node stage-world-node-${stageWorldStatus} ${isCurrentWorldNode ? 'current-stage-world-node' : ''} ${stage.isTutorial || stage.isTurnaroundTutorial ? 'tutorial-stage-card' : ''} ${isPerfectStageCleared ? 'completed-stage-card' : ''} ${isEarlyWithinStage ? 'early-arrival-stage-card' : ''} ${isStageConditionUnmet ? 'off-time-stage-card' : ''}`}
                       style={{
                         '--stage-world-node-x': `${getStageWorldNodeLeftPx(node)}px`,
                         '--stage-world-node-y': `${getStageWorldNodeTopPx(node)}px`,
