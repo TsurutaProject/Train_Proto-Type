@@ -8,6 +8,7 @@
   background: #e9f3f7;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  overscroll-behavior-x: none;
 }
 
 * {
@@ -21,6 +22,11 @@ body {
   background:
     radial-gradient(circle at top left, rgb(129 212 250 / 45%), transparent 32%),
     linear-gradient(145deg, #e9f3f7, #fff8e1);
+  overscroll-behavior-x: none;
+}
+
+#root {
+  overscroll-behavior-x: none;
 }
 
 button,

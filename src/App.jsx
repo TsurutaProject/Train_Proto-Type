@@ -3,7 +3,6 @@ import './App.css'
 import {
   getFastRailSavings,
   getFastRailSavingsMessage,
-  getFastRailSavingsRank,
   isWithinTargetTime,
 } from './fastRailSavings.js'
 import blueTrainLeftImage from './assets/train-game/blue-train-left.png'
@@ -501,6 +500,11 @@ const STAGE_WORLD_MAP_HEIGHT_PX =
   (STAGE_WORLD_ROWS - 1) * STAGE_WORLD_GAP_PX +
   STAGE_WORLD_PADDING_TOP_PX +
   STAGE_WORLD_PADDING_BOTTOM_PX
+const STAGE_WORLD_STATUS_ROWS = {
+  cleared: 0,
+  improve: 1,
+  unplayed: 2,
+}
 const STAGE_WORLD_NODES = [
   { stageNumber: 'tutorial', x: 0, y: 1 },
   { stageNumber: '1', x: 1, y: 1 },
@@ -521,19 +525,28 @@ const STAGE_WORLD_NODES = [
   { stageNumber: '16', x: 16, y: 2 },
 ]
 
-const STAGE_WORLD_TRACK_POINTS = STAGE_WORLD_NODES.map((node) => ({
-  x:
-    STAGE_WORLD_PADDING_X_PX +
-    node.x * STAGE_WORLD_COLUMN_STEP_PX +
-    STAGE_WORLD_CELL_PX / 2,
-  y:
-    STAGE_WORLD_PADDING_TOP_PX +
-    node.y * (STAGE_WORLD_ROW_PX + STAGE_WORLD_GAP_PX) +
-    STAGE_WORLD_ROW_PX / 2,
-}))
-const STAGE_WORLD_TRACK_PATH = STAGE_WORLD_TRACK_POINTS.map(
-  (point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`,
-).join(' ')
+const getStageWorldNodeLeftPx = (node) =>
+  STAGE_WORLD_PADDING_X_PX + node.x * STAGE_WORLD_COLUMN_STEP_PX
+
+const getStageWorldNodeTopPx = (node) =>
+  STAGE_WORLD_PADDING_TOP_PX +
+  node.y * (STAGE_WORLD_ROW_PX + STAGE_WORLD_GAP_PX)
+
+const getStageWorldNodePoint = (node) => ({
+  x: getStageWorldNodeLeftPx(node) + STAGE_WORLD_CELL_PX / 2,
+  y: getStageWorldNodeTopPx(node) + STAGE_WORLD_ROW_PX / 2,
+})
+
+const getStageWorldTrackPath = (nodes) =>
+  nodes
+    .map(getStageWorldNodePoint)
+    .map(
+      (point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`,
+    )
+    .join(' ')
+const STAGE_WORLD_WHEEL_STEP_DELTA = 58
+const STAGE_WORLD_WHEEL_REPEAT_MS = 180
+const STAGE_WORLD_WHEEL_FAST_REPEAT_DELTA = 160
 
 const getStageWorldIndexForStageId = (stageId) => {
   const stageNumber = stageId === 'estimateTutorial' ? 'tutorial' : stageId
@@ -607,10 +620,29 @@ const isStageCleared = (stage, stageResult) => {
     : Math.abs(stageResult.difference) < EXACT_TIME_TOLERANCE
 }
 
+const getEarlyArrivalSeconds = (stageResult) => {
+  if (!stageResult) return 0
+
+  if (Number.isFinite(stageResult.earlyArrivalSeconds)) {
+    return Math.max(0, stageResult.earlyArrivalSeconds)
+  }
+
+  if (
+    Number.isFinite(stageResult.targetTime) &&
+    Number.isFinite(stageResult.actualTime)
+  ) {
+    return Math.max(0, stageResult.targetTime - stageResult.actualTime)
+  }
+
+  return Number.isFinite(stageResult.difference)
+    ? Math.max(0, -stageResult.difference)
+    : 0
+}
+
 const getStageResultLabel = (stage, stageResult) => {
   if (getClearCondition(stage) === 'within') {
     return stageResult.difference <= EXACT_TIME_TOLERANCE
-      ? '✓ 時間以内'
+      ? `${getEarlyArrivalSeconds(stageResult).toFixed(1)}秒早く到着`
       : `${stageResult.difference.toFixed(1)}秒早くできそう`
   }
 
@@ -635,9 +667,32 @@ const getStageResultKey = (stageId, isEstimateMode) => {
   return `${isEstimateMode ? 'estimate' : 'normal'}:${normalizedStageId}`
 }
 
+const getResultTone = (stageResult) => {
+  if (!stageResult?.cleared) return 'miss'
+  return stageResult.clearCondition === 'exact' ? 'perfect' : 'early'
+}
+
+const getResultStatusLabel = (stageResult) => {
+  if (!stageResult?.cleared) return '条件未達成'
+  return stageResult.clearCondition === 'exact' ? '時間ぴったり' : '時間以内'
+}
+
+const normalizeStageResult = (stageResult) => ({
+  ...stageResult,
+  earlyArrivalSeconds: getEarlyArrivalSeconds(stageResult),
+})
+
 const loadStageResults = () => {
   try {
-    return JSON.parse(window.localStorage.getItem(STAGE_RESULTS_STORAGE_KEY)) ?? {}
+    const savedResults =
+      JSON.parse(window.localStorage.getItem(STAGE_RESULTS_STORAGE_KEY)) ?? {}
+
+    return Object.fromEntries(
+      Object.entries(savedResults).map(([key, stageResult]) => [
+        key,
+        normalizeStageResult(stageResult),
+      ]),
+    )
   } catch {
     return {}
   }
@@ -1127,6 +1182,7 @@ function App() {
   const [stageResults, setStageResults] = useState(loadStageResults)
   const [estimateMode, setEstimateMode] = useState(false)
   const [stageWorldIndex, setStageWorldIndex] = useState(0)
+  const [stageWorldFacing, setStageWorldFacing] = useState('right')
   const [estimateRevealed, setEstimateRevealed] = useState(false)
   const [userEstimatedTime, setUserEstimatedTime] = useState('')
   const [estimateMemo, setEstimateMemo] = useState(EMPTY_ESTIMATE_MEMO)
@@ -1134,6 +1190,8 @@ function App() {
   const [turnaroundDemoOpen, setTurnaroundDemoOpen] = useState(false)
   const [turnaroundDemoPlaying, setTurnaroundDemoPlaying] = useState(false)
   const mapRef = useRef(null)
+  const stageWorldMapWindowRef = useRef(null)
+  const stageWorldWheelRef = useRef({ delta: 0, lastMovedAt: 0 })
   const trainMotionLayerRef = useRef(null)
   const trainRunIdRef = useRef(0)
   const slowRailDragRef = useRef({
@@ -1954,57 +2012,10 @@ function App() {
 
     const timer = window.setTimeout(() => {
       setResult(trainRun.result)
-      setStageResults((previousResults) => {
-        const previousResult = previousResults[trainRun.resultKey]
-
-        if (previousResult) {
-          if (trainRun.result.clearCondition === 'within') {
-            const previousCleared = isWithinTargetTime(
-              previousResult.actualTime,
-              previousResult.targetTime,
-              true,
-              EXACT_TIME_TOLERANCE,
-            )
-            if (previousCleared && !trainRun.result.cleared) return previousResults
-
-            if (
-              previousCleared &&
-              trainRun.result.cleared
-            ) {
-              const previousSavingsRank = getFastRailSavingsRank(
-                previousResult.fastRailSavingsRating,
-              )
-              const nextSavingsRank = getFastRailSavingsRank(
-                trainRun.result.fastRailSavingsRating,
-              )
-              if (previousSavingsRank > nextSavingsRank) return previousResults
-              if (
-                previousSavingsRank === nextSavingsRank &&
-                Math.abs(previousResult.difference) <=
-                  Math.abs(trainRun.result.difference)
-              ) {
-                return previousResults
-              }
-            } else if (
-              !trainRun.result.cleared &&
-              Math.abs(previousResult.difference) <=
-                Math.abs(trainRun.result.difference)
-            ) {
-              return previousResults
-            }
-          } else if (
-            Math.abs(previousResult.difference) <=
-            Math.abs(trainRun.result.difference)
-          ) {
-            return previousResults
-          }
-        }
-
-        return {
-          ...previousResults,
-          [trainRun.resultKey]: trainRun.result,
-        }
-      })
+      setStageResults((previousResults) => ({
+        ...previousResults,
+        [trainRun.resultKey]: trainRun.result,
+      }))
       setTrainRun(null)
       setScreen('result')
     }, remainingDuration / playbackRate + 450)
@@ -2144,6 +2155,7 @@ function App() {
       targetTime: currentStage.targetTime,
       actualTime,
       difference,
+      earlyArrivalSeconds: Math.max(0, currentStage.targetTime - actualTime),
       clearCondition,
       cleared,
       maxFastRails: currentStage.maxFastRails ?? null,
@@ -2355,7 +2367,7 @@ function App() {
         return `${Math.abs(result.difference).toFixed(1)}秒早くできそう`
       }
 
-      return '時間以内に到着！'
+      return `${getEarlyArrivalSeconds(result).toFixed(1)}秒早く到着！`
     }
 
     if (Math.abs(result.difference) < EXACT_TIME_TOLERANCE) {
@@ -2791,26 +2803,99 @@ function App() {
 
     return -1
   }
-  const moveStageWorld = (direction) => {
-    setStageWorldIndex((currentIndex) => {
-      const nextIndex = getStageWorldNeighborIndex(currentIndex, direction)
-      return nextIndex >= 0 ? nextIndex : currentIndex
-    })
+  const moveStageWorldTo = (targetIndex) => {
+    const nextIndex = Math.min(
+      Math.max(targetIndex, 0),
+      STAGE_WORLD_NODES.length - 1,
+    )
+
+    if (nextIndex === stageWorldIndex) return
+
+    setStageWorldFacing(nextIndex > stageWorldIndex ? 'right' : 'left')
+    setStageWorldIndex(nextIndex)
   }
+  const moveStageWorld = (direction) => {
+    const nextIndex = getStageWorldNeighborIndex(stageWorldIndex, direction)
+
+    if (nextIndex >= 0) moveStageWorldTo(nextIndex)
+  }
+  const handleStageWorldWheel = useEffectEvent((event) => {
+    if (screen !== 'stageSelect') return
+
+    if (event.cancelable) event.preventDefault()
+    event.stopPropagation()
+
+    const dominantDelta =
+      Math.abs(event.deltaX) > Math.abs(event.deltaY)
+        ? event.deltaX
+        : event.deltaY
+
+    if (Math.abs(dominantDelta) < 4) return
+
+    const wheel = stageWorldWheelRef.current
+    const now = window.performance.now()
+    wheel.delta += dominantDelta
+
+    if (
+      now - wheel.lastMovedAt < STAGE_WORLD_WHEEL_REPEAT_MS &&
+      Math.abs(wheel.delta) < STAGE_WORLD_WHEEL_FAST_REPEAT_DELTA
+    ) {
+      return
+    }
+
+    if (Math.abs(wheel.delta) < STAGE_WORLD_WHEEL_STEP_DELTA) return
+
+    moveStageWorld(wheel.delta > 0 ? 'right' : 'left')
+    wheel.delta = 0
+    wheel.lastMovedAt = now
+  })
+
+  useEffect(() => {
+    const mapWindow = stageWorldMapWindowRef.current
+    if (!mapWindow) return undefined
+
+    mapWindow.addEventListener('wheel', handleStageWorldWheel, {
+      passive: false,
+    })
+
+    return () => {
+      mapWindow.removeEventListener('wheel', handleStageWorldWheel)
+    }
+  }, [screen])
+
+  const stageWorldNodes = STAGE_WORLD_NODES.map((node) => {
+    const stageId = getStageIdForWorldNode(node)
+    const stage = STAGES[stageId]
+    const stageResult = stageResults[getStageResultKey(stageId, estimateMode)]
+    const stageCleared = isStageCleared(stage, stageResult)
+    const fastRailBonusMark = getStageFastRailBonusMark(stage, stageResult)
+    const stageWorldStatus =
+      stageCleared && getClearCondition(stage) === 'exact'
+        ? 'cleared'
+        : stageResult
+          ? 'improve'
+          : 'unplayed'
+
+    return {
+      ...node,
+      y: STAGE_WORLD_STATUS_ROWS[stageWorldStatus],
+      baseY: node.y,
+      stageId,
+      stage,
+      stageResult,
+      stageCleared,
+      fastRailBonusMark,
+      stageWorldStatus,
+    }
+  })
+  const stageWorldTrackPath = getStageWorldTrackPath(stageWorldNodes)
   const selectedStageWorldNode =
-    STAGE_WORLD_NODES[stageWorldIndex] ?? STAGE_WORLD_NODES[0]
-  const selectedStageWorldId = getStageIdForWorldNode(selectedStageWorldNode)
-  const selectedStageWorldStage = STAGES[selectedStageWorldId]
-  const selectedStageWorldResult =
-    stageResults[getStageResultKey(selectedStageWorldId, estimateMode)]
-  const selectedStageWorldCleared = isStageCleared(
-    selectedStageWorldStage,
-    selectedStageWorldResult,
-  )
-  const selectedStageWorldBonusMark = getStageFastRailBonusMark(
-    selectedStageWorldStage,
-    selectedStageWorldResult,
-  )
+    stageWorldNodes[stageWorldIndex] ?? stageWorldNodes[0]
+  const selectedStageWorldId = selectedStageWorldNode.stageId
+  const selectedStageWorldStage = selectedStageWorldNode.stage
+  const selectedStageWorldResult = selectedStageWorldNode.stageResult
+  const selectedStageWorldCleared = selectedStageWorldNode.stageCleared
+  const selectedStageWorldBonusMark = selectedStageWorldNode.fastRailBonusMark
   const stageWorldOffsetColumns = Math.min(
     Math.max(
       selectedStageWorldNode.x - (STAGE_WORLD_VISIBLE_COLUMNS - 1) / 2,
@@ -2820,6 +2905,9 @@ function App() {
   )
   const stageWorldOffsetPx =
     Math.round(stageWorldOffsetColumns * STAGE_WORLD_COLUMN_STEP_PX)
+  const stageWorldPlayerLeftPx =
+    getStageWorldNodeLeftPx(selectedStageWorldNode) + STAGE_WORLD_CELL_PX / 2
+  const stageWorldPlayerTopPx = getStageWorldNodeTopPx(selectedStageWorldNode) - 24
   const stageWorldCanMove = {
     right: getStageWorldNeighborIndex(stageWorldIndex, 'right') >= 0,
     left: getStageWorldNeighborIndex(stageWorldIndex, 'left') >= 0,
@@ -2922,7 +3010,6 @@ function App() {
       {screen === 'stageSelect' && (
         <div className={`screen stage-select-screen ${estimateMode ? 'estimate-stage-select' : ''}`}>
           <h1><RubyText>ステージ選択</RubyText></h1>
-          <p><RubyText>遊ぶステージを選んでください</RubyText></p>
 
           <section className="stage-mode-selector" aria-label="プレイモード選択">
             <div>
@@ -2955,11 +3042,8 @@ function App() {
           </section>
 
           <section className="stage-world" aria-label="ステージ移動マップ">
-            <p className="stage-world-help">
-              <RubyText>左右ボタンで横長マップを少しずつ移動します</RubyText>
-            </p>
-
             <div
+              ref={stageWorldMapWindowRef}
               className="stage-world-map-window"
               style={{
                 '--stage-world-window-width': `${STAGE_WORLD_WINDOW_WIDTH_PX}px`,
@@ -2972,6 +3056,8 @@ function App() {
                   '--stage-world-rows': String(STAGE_WORLD_ROWS),
                   '--stage-world-cell': `${STAGE_WORLD_CELL_PX}px`,
                   '--stage-world-gap': `${STAGE_WORLD_GAP_PX}px`,
+                  '--stage-world-map-width': `${STAGE_WORLD_MAP_WIDTH_PX}px`,
+                  '--stage-world-map-height': `${STAGE_WORLD_MAP_HEIGHT_PX}px`,
                   '--stage-world-padding-x': `${STAGE_WORLD_PADDING_X_PX}px`,
                   '--stage-world-row': `${STAGE_WORLD_ROW_PX}px`,
                   '--stage-world-padding-top': `${STAGE_WORLD_PADDING_TOP_PX}px`,
@@ -2988,45 +3074,56 @@ function App() {
                 >
                   <path
                     className="stage-world-track-shadow"
-                    d={STAGE_WORLD_TRACK_PATH}
+                    d={stageWorldTrackPath}
                   />
                   <path
                     className="stage-world-track-sleepers"
-                    d={STAGE_WORLD_TRACK_PATH}
+                    d={stageWorldTrackPath}
                   />
                   <path
                     className="stage-world-track-rails"
-                    d={STAGE_WORLD_TRACK_PATH}
+                    d={stageWorldTrackPath}
                   />
                   <path
                     className="stage-world-track-gap"
-                    d={STAGE_WORLD_TRACK_PATH}
+                    d={stageWorldTrackPath}
                   />
                 </svg>
-                {STAGE_WORLD_NODES.map((node, index) => {
-                  const stageId = getStageIdForWorldNode(node)
-                  const stage = STAGES[stageId]
-                  const stageResult =
-                    stageResults[getStageResultKey(stageId, estimateMode)]
-                  const stageCleared = isStageCleared(stage, stageResult)
-                  const fastRailBonusMark = getStageFastRailBonusMark(
+                {stageWorldNodes.map((node, index) => {
+                  const {
+                    stageId,
                     stage,
                     stageResult,
-                  )
+                    stageCleared,
+                    fastRailBonusMark,
+                    stageWorldStatus,
+                  } = node
                   const isCurrentWorldNode = index === stageWorldIndex
+                  const isExactStageCleared =
+                    stageCleared && getClearCondition(stage) === 'exact'
+                  const isEarlyWithinStage =
+                    stageCleared && getClearCondition(stage) === 'within'
+                  const isStageConditionUnmet = Boolean(stageResult) && !stageCleared
 
                   return (
                     <button
                       key={node.stageNumber}
                       type="button"
-                      className={`stage-world-node ${isCurrentWorldNode ? 'current-stage-world-node' : ''} ${stage.isTutorial || stage.isTurnaroundTutorial ? 'tutorial-stage-card' : ''} ${stageCleared ? 'completed-stage-card' : ''} ${stageResult && Math.abs(stageResult.difference) >= EXACT_TIME_TOLERANCE ? 'off-time-stage-card' : ''}`}
+                      className={`stage-world-node stage-world-node-${stageWorldStatus} ${isCurrentWorldNode ? 'current-stage-world-node' : ''} ${stage.isTutorial || stage.isTurnaroundTutorial ? 'tutorial-stage-card' : ''} ${isExactStageCleared ? 'completed-stage-card' : ''} ${isEarlyWithinStage ? 'early-arrival-stage-card' : ''} ${isStageConditionUnmet ? 'off-time-stage-card' : ''}`}
                       style={{
-                        gridColumn: node.x + 1,
-                        gridRow: node.y + 1,
+                        '--stage-world-node-x': `${getStageWorldNodeLeftPx(node)}px`,
+                        '--stage-world-node-y': `${getStageWorldNodeTopPx(node)}px`,
                       }}
                       aria-label={`${stage.title}へ移動`}
                       aria-current={isCurrentWorldNode ? 'step' : undefined}
-                      onClick={() => setStageWorldIndex(index)}
+                      onClick={() => {
+                        if (isCurrentWorldNode) {
+                          startStage(stageId)
+                          return
+                        }
+
+                        moveStageWorldTo(index)
+                      }}
                     >
                       <span
                         className="stage-condition-icon"
@@ -3054,23 +3151,28 @@ function App() {
                           <RubyText text={getStageResultLabel(stage, stageResult)} />
                         </em>
                       )}
-                      {isCurrentWorldNode && (
-                        <span className="stage-world-player" aria-hidden="true">
-                          <img
-                            className="stage-world-player-car stage-world-player-car-rear"
-                            src={blueTrainLeftImage}
-                            alt=""
-                          />
-                          <img
-                            className="stage-world-player-car stage-world-player-car-front"
-                            src={blueTrainRightImage}
-                            alt=""
-                          />
-                        </span>
-                      )}
                     </button>
                   )
                 })}
+                <span
+                  className={`stage-world-player stage-world-player-facing-${stageWorldFacing}`}
+                  style={{
+                    '--stage-world-player-x': `${stageWorldPlayerLeftPx}px`,
+                    '--stage-world-player-y': `${stageWorldPlayerTopPx}px`,
+                  }}
+                  aria-hidden="true"
+                >
+                  <img
+                    className="stage-world-player-car stage-world-player-car-rear"
+                    src={blueTrainLeftImage}
+                    alt=""
+                  />
+                  <img
+                    className="stage-world-player-car stage-world-player-car-front"
+                    src={blueTrainRightImage}
+                    alt=""
+                  />
+                </span>
               </div>
             </div>
 
@@ -3682,20 +3784,38 @@ function App() {
 
       {screen === 'result' && result && (
         <div className="screen result-screen">
-          <div className={`result-box ${result.estimate ? 'result-box-estimate' : ''}`}>
+          <div
+            className={`result-box result-box-${getResultTone(result)} ${result.estimate ? 'result-box-estimate' : ''}`}
+          >
+            <span className="result-status-badge">
+              <RubyText text={getResultStatusLabel(result)} />
+            </span>
             <h1><RubyText>リザルト</RubyText></h1>
-            <p>
-              <RubyText
-                text={`クリア条件：${
-                  result.clearCondition === 'within'
-                    ? '目標時間以内'
-                    : '目標時間ぴったり'
-                }`}
-              />
+            <div className="result-summary-grid">
+              <p className="result-summary-card result-summary-condition">
+                <span><RubyText>クリア条件</RubyText></span>
+                <strong>
+                  <RubyText
+                    text={
+                      result.clearCondition === 'within'
+                        ? '目標時間以内'
+                        : '目標時間ぴったり'
+                    }
+                  />
+                </strong>
+              </p>
+              <p className="result-summary-card">
+                <span><RubyText>目標</RubyText></span>
+                <strong><RubyText text={`${result.targetTime}秒`} /></strong>
+              </p>
+              <p className="result-summary-card">
+                <span><RubyText>実際</RubyText></span>
+                <strong><RubyText text={`${result.actualTime.toFixed(1)}秒`} /></strong>
+              </p>
+            </div>
+            <p className="result-message">
+              <RubyText text={getResultMessage()} />
             </p>
-            <p><RubyText text={`目標：${result.targetTime}秒`} /></p>
-            <p><RubyText text={`実際：${result.actualTime.toFixed(1)}秒`} /></p>
-            <p><RubyText text={getResultMessage()} /></p>
             {result.fastRailSavingsAwarded && (
               <p className="fast-rail-saving-feedback">
                 <RubyText
