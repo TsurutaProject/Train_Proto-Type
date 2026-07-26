@@ -89,7 +89,6 @@ const STAGES = {
     availableRails: ['slow', 'fast'],
     maxFastRails: 6,
     minimumRequiredFastRails: 2,
-    clearCondition: 'within',
     enableFastRailSaving: true,
   },
   3: {
@@ -129,7 +128,6 @@ const STAGES = {
     availableRails: ['slow', 'fast'],
     maxFastRails: 8,
     minimumRequiredFastRails: 6,
-    clearCondition: 'within',
     enableFastRailSaving: true,
   },
   5: {
@@ -176,7 +174,6 @@ const STAGES = {
     maxFastRails: 6,
     minimumRequiredFastRails: 2,
     relayRequiresSlowApproach: true,
-    clearCondition: 'within',
     enableFastRailSaving: true,
   },
   7: {
@@ -200,7 +197,6 @@ const STAGES = {
     maxFastRails: 3,
     minimumRequiredFastRails: 3,
     relayRequiresSlowApproach: true,
-    clearCondition: 'within',
   },
   8: {
     title: 'ステージ8',
@@ -256,7 +252,6 @@ const STAGES = {
     maxFastRails: 10,
     minimumRequiredFastRails: 9,
     slowZoneRadius: 3,
-    clearCondition: 'within',
     enableFastRailSaving: true,
   },
   11: {
@@ -324,7 +319,6 @@ const STAGES = {
     minimumRequiredFastRails: 4,
     relayRequiresSlowApproach: true,
     slowZoneRadius: 3,
-    clearCondition: 'within',
   },
   13: {
     title: 'ステージ13',
@@ -419,7 +413,6 @@ const STAGES = {
     maxFastRails: 5,
     minimumRequiredFastRails: 5,
     relayRequiresSlowApproach: true,
-    clearCondition: 'within',
   },
   16: {
     title: 'ステージ16',
@@ -605,8 +598,6 @@ const getDirectionBetween = (from, to) => {
   )?.[0]
 }
 
-const getClearCondition = () => 'within'
-
 const isExactTimeResult = (stageResult) =>
   Boolean(
     stageResult &&
@@ -617,14 +608,12 @@ const isExactTimeResult = (stageResult) =>
 const isStageCleared = (stage, stageResult) => {
   if (!stageResult) return false
 
-  return getClearCondition(stage) === 'within'
-    ? isWithinTargetTime(
-      stageResult.actualTime,
-      stage.targetTime,
-      true,
-      EXACT_TIME_TOLERANCE,
-    )
-    : isExactTimeResult(stageResult)
+  return isWithinTargetTime(
+    stageResult.actualTime,
+    stage.targetTime,
+    true,
+    EXACT_TIME_TOLERANCE,
+  )
 }
 
 const getEarlyArrivalSeconds = (stageResult) => {
@@ -2195,21 +2184,18 @@ function App() {
 
     const actualTime = route.time
     const difference = actualTime - currentStage.targetTime
-    const clearCondition = getClearCondition(currentStage)
-    const cleared = clearCondition === 'within'
-      ? isWithinTargetTime(
-        actualTime,
-        currentStage.targetTime,
-        true,
-        EXACT_TIME_TOLERANCE,
-      )
-      : Math.abs(difference) < EXACT_TIME_TOLERANCE
+    const cleared = isWithinTargetTime(
+      actualTime,
+      currentStage.targetTime,
+      true,
+      EXACT_TIME_TOLERANCE,
+    )
     const fastRailSavings = getFastRailSavings({
       maxHighSpeedRails: currentStage.maxFastRails,
       minimumRequiredHighSpeedRails: currentStage.minimumRequiredFastRails,
       placedRails,
       cleared,
-      savingsEligible: clearCondition === 'within',
+      savingsEligible: true,
     })
 
     const nextResult = {
@@ -2217,7 +2203,6 @@ function App() {
       actualTime,
       difference,
       earlyArrivalSeconds: Math.max(0, currentStage.targetTime - actualTime),
-      clearCondition,
       cleared,
       maxFastRails: currentStage.maxFastRails ?? null,
       minimumRequiredFastRails: fastRailSavings.minimumRequiredHighSpeedRails,
@@ -2226,7 +2211,7 @@ function App() {
       fastRailSavingsRating: fastRailSavings.savingsRating,
       fastRailSavingsMark: fastRailSavings.savingsMark,
       fastRailSavingsAwarded: fastRailSavings.savingsAwarded,
-      fastRailSavingsEligible: clearCondition === 'within',
+      fastRailSavingsEligible: true,
       estimate: estimateMode
         ? {
           userTime: parsedUserEstimatedTime,
@@ -2427,18 +2412,11 @@ function App() {
       return '時間ぴったり！'
     }
 
-    if (result.clearCondition === 'within') {
-      if (!result.cleared) {
-        return `${Math.abs(result.difference).toFixed(1)}秒早くできそう`
-      }
-
-      return `${getEarlyArrivalSeconds(result).toFixed(1)}秒早く到着！`
+    if (!result.cleared) {
+      return `${Math.abs(result.difference).toFixed(1)}秒早くできそう`
     }
 
-    const seconds = Math.abs(result.difference).toFixed(1)
-    return result.difference > 0
-      ? `${seconds}秒早くできそう`
-      : `${seconds}秒ゆっくりできそう`
+    return `${getEarlyArrivalSeconds(result).toFixed(1)}秒早く到着！`
   }
 
   const shortestRoute = currentStage ? findShortestRoute() : null
@@ -2466,7 +2444,7 @@ function App() {
     maxHighSpeedRails: currentStage?.maxFastRails,
     minimumRequiredHighSpeedRails: currentStage?.minimumRequiredFastRails,
     placedRails,
-    savingsEligible: currentStage ? getClearCondition(currentStage) === 'within' : false,
+    savingsEligible: Boolean(currentStage),
   })
   const remainingFastRails = currentFastRailSavings.savedHighSpeedRails
   const getRouteSegmentTimes = (route) => {
@@ -3284,13 +3262,7 @@ function App() {
               <span><RubyText>折り返し地点を通過する</RubyText></span>
             )}
             <span>
-              <RubyText
-                text={
-                  getClearCondition(currentStage) === 'within'
-                    ? '時間以内でゴールする'
-                    : '時間ぴったりでゴールする'
-                }
-              />
+              <RubyText>時間以内でゴールする</RubyText>
             </span>
           </div>
 
@@ -3809,13 +3781,7 @@ function App() {
               <p className="result-summary-card result-summary-condition">
                 <span><RubyText>クリア条件</RubyText></span>
                 <strong>
-                  <RubyText
-                    text={
-                      result.clearCondition === 'within'
-                        ? '目標時間以内'
-                        : '目標時間ぴったり'
-                    }
-                  />
+                  <RubyText>目標時間以内</RubyText>
                 </strong>
               </p>
               <p className="result-summary-card">

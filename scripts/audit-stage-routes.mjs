@@ -14,6 +14,7 @@ const directions = [
 
 const positionKey = ({ x, y }) => `${x}-${y}`
 const samePosition = (a, b) => a.x === b.x && a.y === b.y
+const getStageClearCondition = (stage) => stage.clearCondition ?? 'within'
 
 function getDirection(from, to) {
   return directions.find(
@@ -187,7 +188,7 @@ function createStageAudit(stage) {
 
   const solutions = []
   let minimumRequiredFastRails = Number.POSITIVE_INFINITY
-  const auditsWithinTime = stage.clearCondition === 'within'
+  const auditsWithinTime = getStageClearCondition(stage) === 'within'
   const startRelayMask = relayByPosition.get(positionKey(stage.start))?.relayBit ?? 0
   const startTurnaroundMask = turnaroundByPosition.get(positionKey(stage.start)) ?? 0
   const visitCounts = new Map([[positionKey(stage.start), 1]])
@@ -274,7 +275,7 @@ const results = []
 stagesToAudit.forEach(([stageId, stage]) => {
   const audit = createStageAudit(stage)
   results.push({ stageId, ...audit })
-  const benchmark = stage.clearCondition === 'within'
+  const benchmark = getStageClearCondition(stage) === 'within'
     ? `, minimum fast rails: ${audit.minimumRequiredFastRails ?? 'unreachable'}`
     : ''
   console.log(
