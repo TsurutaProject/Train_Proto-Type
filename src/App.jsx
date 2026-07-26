@@ -481,11 +481,11 @@ const STAGE_WORLD_COLUMNS = STAGE_ORDER.length
 const STAGE_WORLD_ROWS = 3
 const STAGE_WORLD_VISIBLE_COLUMNS = 4
 const STAGE_WORLD_CELL_PX = 250
-const STAGE_WORLD_ROW_PX = 72
-const STAGE_WORLD_GAP_PX = 24
+const STAGE_WORLD_ROW_PX = 88
+const STAGE_WORLD_GAP_PX = 28
 const STAGE_WORLD_PADDING_X_PX = 28
-const STAGE_WORLD_PADDING_TOP_PX = 24
-const STAGE_WORLD_PADDING_BOTTOM_PX = 14
+const STAGE_WORLD_PADDING_TOP_PX = 30
+const STAGE_WORLD_PADDING_BOTTOM_PX = 22
 const STAGE_WORLD_COLUMN_STEP_PX = STAGE_WORLD_CELL_PX + STAGE_WORLD_GAP_PX
 const STAGE_WORLD_WINDOW_WIDTH_PX =
   STAGE_WORLD_VISIBLE_COLUMNS * STAGE_WORLD_CELL_PX +
@@ -605,7 +605,7 @@ const getDirectionBetween = (from, to) => {
   )?.[0]
 }
 
-const getClearCondition = (stage) => stage.clearCondition ?? 'exact'
+const getClearCondition = () => 'within'
 
 const isExactTimeResult = (stageResult) =>
   Boolean(
@@ -646,32 +646,69 @@ const getEarlyArrivalSeconds = (stageResult) => {
     : 0
 }
 
-const getStageResultLabel = (stage, stageResult) => {
-  if (isExactTimeResult(stageResult)) {
-    return '✓ 時間ぴったり'
-  }
-
-  if (getClearCondition(stage) === 'within') {
-    return stageResult.difference <= EXACT_TIME_TOLERANCE
-      ? `${getEarlyArrivalSeconds(stageResult).toFixed(1)}秒早く到着`
-      : `${stageResult.difference.toFixed(1)}秒早くできそう`
-  }
-
-  if (Math.abs(stageResult.difference) < EXACT_TIME_TOLERANCE) {
-    return '✓ 時間ぴったり'
-  }
-
-  const seconds = Math.abs(stageResult.difference).toFixed(1)
-  return `${seconds}秒${stageResult.difference > 0 ? '早く' : 'ゆっくり'}できそう`
+const getStageFastRailBonusLabel = (stageResult) => {
+  if (stageResult?.fastRailSavingsRating === 'minimum') return '☆ 最小本数'
+  if (stageResult?.fastRailSavingsRating === 'saved') return '◎ レール節約'
+  return ''
 }
 
-const getStageClearConditionIcon = (stage) =>
-  getClearCondition(stage) === 'within' ? '⌛' : '🕘'
+const getStageEvaluationTags = (stage, stageResult) => {
+  const tags = [
+    {
+      key: 'target',
+      tone: 'target',
+      text: `目標 ${stage.targetTime}秒以内`,
+    },
+  ]
 
-const getStageFastRailBonusMark = (stage, stageResult) =>
-  getClearCondition(stage) === 'within' && isStageCleared(stage, stageResult)
-    ? stageResult.fastRailSavingsMark
-    : ''
+  if (!stageResult) {
+    return [
+      ...tags,
+      {
+        key: 'unplayed',
+        tone: 'unplayed',
+        text: '未プレイ',
+      },
+    ]
+  }
+
+  if (!isStageCleared(stage, stageResult)) {
+    return [
+      ...tags,
+      {
+        key: 'late',
+        tone: 'late',
+        text: `${Math.max(0, stageResult.difference).toFixed(1)}秒遅い`,
+      },
+    ]
+  }
+
+  tags.push({
+    key: 'within',
+    tone: 'within',
+    text: '時間以内',
+  })
+
+  if (isExactTimeResult(stageResult)) {
+    tags.push({
+      key: 'perfect',
+      tone: 'perfect',
+      text: 'ぴったり',
+    })
+  }
+
+  const fastRailBonusLabel = getStageFastRailBonusLabel(stageResult)
+
+  if (fastRailBonusLabel) {
+    tags.push({
+      key: 'fast-rail-bonus',
+      tone: 'bonus',
+      text: fastRailBonusLabel,
+    })
+  }
+
+  return tags
+}
 
 const getStageResultKey = (stageId, isEstimateMode) => {
   const normalizedStageId = stageId === 'estimateTutorial' ? 'tutorial' : stageId
@@ -859,7 +896,9 @@ const RUBY_DEFINITIONS = {
   混雑区画: 'こんざつくかく',
   最短経路: 'さいたんけいろ',
   追加評価: 'ついかひょうか',
+  最小本数: 'さいしょうほんすう',
   時間以内: 'じかんいない',
+  未プレイ: 'みぷれい',
   接続済: 'せつぞくず',
   半透明: 'はんとうめい',
   準備完了: 'じゅんびかんりょう',
@@ -877,6 +916,7 @@ const RUBY_DEFINITIONS = {
   地点: 'ちてん',
   必要: 'ひつよう',
   節約: 'せつやく',
+  本数: 'ほんすう',
   到着: 'とうちゃく',
   出発: 'しゅっぱつ',
   実際: 'じっさい',
@@ -932,6 +972,7 @@ const RUBY_DEFINITIONS = {
   左右: 'さゆう',
   上下: 'じょうげ',
   秒: 'びょう',
+  遅: 'おそ',
   本: 'ほん',
   枠: 'わく',
   折: 'お',
@@ -1105,7 +1146,7 @@ const RUBY_TOKENS = Object.keys(RUBY_DEFINITIONS).sort(
   (a, b) => b.length - a.length,
 )
 
-function RubyText({ children, text }) {
+function RubyText({ balancePlainText = false, children, text }) {
   const value = text ?? children
 
   if (typeof value !== 'string') return value
@@ -1139,7 +1180,16 @@ function RubyText({ children, text }) {
           </ruby>,
         )
       } else {
-        parts.push(character)
+        parts.push(
+          balancePlainText && !/\s/u.test(character) ? (
+            <ruby className="ruby-placeholder" key={`plain-${character}-${index}`}>
+              {character}
+              <rt aria-hidden="true">{'\u00a0'}</rt>
+            </ruby>
+          ) : (
+            character
+          ),
+        )
       }
       index += 1
     }
@@ -2879,10 +2929,8 @@ function App() {
     const stage = STAGES[stageId]
     const stageResult = stageResults[getStageResultKey(stageId, estimateMode)]
     const stageCleared = isStageCleared(stage, stageResult)
-    const fastRailBonusMark = getStageFastRailBonusMark(stage, stageResult)
-    const stageExactTime = isExactTimeResult(stageResult)
     const stageWorldStatus =
-      stageCleared && stageExactTime
+      stageCleared
         ? 'cleared'
         : stageResult
           ? 'improve'
@@ -2896,8 +2944,6 @@ function App() {
       stage,
       stageResult,
       stageCleared,
-      stageExactTime,
-      fastRailBonusMark,
       stageWorldStatus,
     }
   })
@@ -2907,8 +2953,10 @@ function App() {
   const selectedStageWorldId = selectedStageWorldNode.stageId
   const selectedStageWorldStage = selectedStageWorldNode.stage
   const selectedStageWorldResult = selectedStageWorldNode.stageResult
-  const selectedStageWorldCleared = selectedStageWorldNode.stageCleared
-  const selectedStageWorldBonusMark = selectedStageWorldNode.fastRailBonusMark
+  const selectedStageWorldEvaluationTags = getStageEvaluationTags(
+    selectedStageWorldStage,
+    selectedStageWorldResult,
+  )
   const stageWorldOffsetColumns = Math.min(
     Math.max(
       selectedStageWorldNode.x - (STAGE_WORLD_VISIBLE_COLUMNS - 1) / 2,
@@ -3108,23 +3156,17 @@ function App() {
                     stage,
                     stageResult,
                     stageCleared,
-                    stageExactTime,
-                    fastRailBonusMark,
                     stageWorldStatus,
                   } = node
                   const isCurrentWorldNode = index === stageWorldIndex
-                  const isPerfectStageCleared = stageCleared && stageExactTime
-                  const isEarlyWithinStage =
-                    stageCleared &&
-                    getClearCondition(stage) === 'within' &&
-                    !stageExactTime
+                  const isClearedStage = stageCleared
                   const isStageConditionUnmet = Boolean(stageResult) && !stageCleared
 
                   return (
                     <button
                       key={node.stageNumber}
                       type="button"
-                      className={`stage-world-node stage-world-node-${stageWorldStatus} ${isCurrentWorldNode ? 'current-stage-world-node' : ''} ${stage.isTutorial || stage.isTurnaroundTutorial ? 'tutorial-stage-card' : ''} ${isPerfectStageCleared ? 'completed-stage-card' : ''} ${isEarlyWithinStage ? 'early-arrival-stage-card' : ''} ${isStageConditionUnmet ? 'off-time-stage-card' : ''}`}
+                      className={`stage-world-node stage-world-node-${stageWorldStatus} ${isCurrentWorldNode ? 'current-stage-world-node' : ''} ${stage.isTutorial || stage.isTurnaroundTutorial ? 'tutorial-stage-card' : ''} ${isClearedStage ? 'completed-stage-card' : ''} ${isStageConditionUnmet ? 'off-time-stage-card' : ''}`}
                       style={{
                         '--stage-world-node-x': `${getStageWorldNodeLeftPx(node)}px`,
                         '--stage-world-node-y': `${getStageWorldNodeTopPx(node)}px`,
@@ -3140,32 +3182,9 @@ function App() {
                         moveStageWorldTo(index)
                       }}
                     >
-                      <span
-                        className="stage-condition-icon"
-                        aria-label={
-                          getClearCondition(stage) === 'within'
-                            ? '時間以内でゴールする'
-                            : '時間ぴったりでゴールする'
-                        }
-                      >
-                        {getStageClearConditionIcon(stage)}
-                      </span>
-                      {fastRailBonusMark && (
-                        <span
-                          className="stage-fast-rail-bonus-mark"
-                          aria-label={`追加評価 ${fastRailBonusMark}`}
-                        >
-                          {fastRailBonusMark}
-                        </span>
-                      )}
                       <span className="stage-number">
                         <RubyText text={String(stage.badge ?? node.stageNumber)} />
                       </span>
-                      {stageResult && (
-                        <em className="stage-result-mark">
-                          <RubyText text={getStageResultLabel(stage, stageResult)} />
-                        </em>
-                      )}
                     </button>
                   )
                 })}
@@ -3198,37 +3217,17 @@ function App() {
               <h2><RubyText text={selectedStageWorldStage.title} /></h2>
               <p><RubyText text={selectedStageWorldStage.description} /></p>
               <div className="stage-world-panel-tags">
-                <span>
-                  <RubyText
-                    text={
-                      getClearCondition(selectedStageWorldStage) === 'within'
-                        ? '時間以内でゴール'
-                        : '時間ぴったりでゴール'
-                    }
-                  />
-                </span>
-                <span>
-                  <RubyText text={`目標 ${selectedStageWorldStage.targetTime}秒`} />
-                </span>
-                {selectedStageWorldCleared && (
-                  <span><RubyText>クリア済み</RubyText></span>
-                )}
-                {selectedStageWorldBonusMark && (
-                  <span>
-                    <RubyText text={`追加評価 ${selectedStageWorldBonusMark}`} />
+                {selectedStageWorldEvaluationTags.map((tag) => (
+                  <span
+                    key={tag.key}
+                    className={`stage-world-panel-tag stage-world-panel-tag-${tag.tone}`}
+                  >
+                    <span className="stage-world-panel-tag-text">
+                      <RubyText balancePlainText text={tag.text} />
+                    </span>
                   </span>
-                )}
+                ))}
               </div>
-              {selectedStageWorldResult && (
-                <em className="stage-result-mark">
-                  <RubyText
-                    text={getStageResultLabel(
-                      selectedStageWorldStage,
-                      selectedStageWorldResult,
-                    )}
-                  />
-                </em>
-              )}
             </div>
 
             <div className="stage-world-controls" aria-label="移動ボタン">

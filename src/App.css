@@ -130,57 +130,6 @@
   background: linear-gradient(145deg, #ffebee, #ffffff);
 }
 
-.stage-result-mark {
-  display: block;
-  margin-top: 12px;
-  padding: 5px 8px;
-  border-radius: 8px;
-  color: #1b5e20;
-  background: #c8e6c9;
-  font-size: 14px;
-  font-style: normal;
-  font-weight: 900;
-}
-
-.early-arrival-stage-card .stage-result-mark {
-  color: #6d4c00;
-  background: #ffecb3;
-}
-
-.off-time-stage-card .stage-result-mark {
-  color: #b71c1c;
-  background: #ffcdd2;
-}
-
-.stage-condition-icon,
-.stage-fast-rail-bonus-mark {
-  position: absolute;
-  z-index: 4;
-  top: 10px;
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border: 2px solid rgb(69 90 100 / 28%);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 92%);
-  box-shadow: 0 4px 10px rgb(38 50 56 / 12%);
-  font-size: 19px;
-  line-height: 1;
-}
-
-.stage-condition-icon {
-  left: 10px;
-}
-
-.stage-fast-rail-bonus-mark {
-  right: 10px;
-  color: #ef6c00;
-  border-color: rgb(239 108 0 / 32%);
-  background: #fff8e1;
-  font-weight: 900;
-}
-
 .stage-list .stage-number,
 .stage-list small {
   display: block;
@@ -204,8 +153,8 @@
   grid-template-areas:
     "map map"
     "panel controls";
-  gap: 8px 12px;
-  margin: 10px auto 0;
+  gap: 12px 14px;
+  margin: 12px auto 0;
 }
 
 .stage-world-map-window {
@@ -338,11 +287,11 @@
   width: var(--stage-world-cell);
   height: var(--stage-world-row);
   min-width: 0;
-  min-height: 72px;
+  min-height: 88px;
   display: grid;
   place-items: center;
   align-content: center;
-  padding: 14px 12px 10px;
+  padding: 18px 14px 12px;
   border: 4px solid #5d4037;
   border-radius: 16px 16px 20px 20px;
   color: #263238;
@@ -449,26 +398,15 @@
     linear-gradient(180deg, #f1f8e9, #c8e6c9);
 }
 
-.stage-world-node.early-arrival-stage-card {
-  border-color: #f9a825;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      transparent 0 42px,
-      rgb(245 127 23 / 14%) 42px 47px
-    ),
-    linear-gradient(180deg, #fffde7, #ffe082);
-}
-
 .stage-world-node.off-time-stage-card {
-  border-color: #c62828;
+  border-color: #ef6c00;
   background:
     repeating-linear-gradient(
       90deg,
       transparent 0 42px,
-      rgb(198 40 40 / 13%) 42px 47px
+      rgb(239 108 0 / 14%) 42px 47px
     ),
-    linear-gradient(180deg, #ffebee, #ffcdd2);
+    linear-gradient(180deg, #fff3e0, #ffb74d);
 }
 
 .stage-world-node.stage-world-node-improve {
@@ -482,11 +420,6 @@
     linear-gradient(180deg, #fff3e0, #ffb74d);
 }
 
-.stage-world-node.stage-world-node-improve .stage-result-mark {
-  color: #6d3b00;
-  background: #ffe0b2;
-}
-
 .stage-world-node.tutorial-stage-card {
   border-color: #ffb300;
 }
@@ -497,7 +430,7 @@
   display: block;
   margin: 0;
   color: #4e342e;
-  font-size: 36px;
+  font-size: 42px;
   font-weight: 900;
   line-height: 1;
 }
@@ -505,18 +438,6 @@
 .stage-world-node.tutorial-stage-card .stage-number {
   color: #e65100;
   font-size: 27px;
-}
-
-.stage-world-node .stage-result-mark {
-  position: absolute;
-  z-index: 3;
-  right: 6px;
-  bottom: 5px;
-  margin: 0;
-  max-width: calc(100% - 12px);
-  padding: 2px 5px;
-  font-size: 10px;
-  white-space: nowrap;
 }
 
 .stage-world-player {
@@ -560,7 +481,8 @@
 
 .stage-world-panel {
   grid-area: panel;
-  padding: 12px 18px;
+  min-height: 118px;
+  padding: 16px 20px;
   border: 3px solid #90a4ae;
   border-radius: 18px;
   color: #263238;
@@ -597,24 +519,96 @@
 }
 
 .stage-world-panel-tags {
+  --stage-panel-tag-width: 160px;
+
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 7px;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: stretch;
 }
 
-.stage-world-panel-tags span {
-  padding: 4px 8px;
+.stage-world-panel-tag {
+  display: inline-flex;
+  flex: 0 0 var(--stage-panel-tag-width);
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--stage-panel-tag-width);
+  max-width: 100%;
+  height: 50px;
+  min-height: 50px;
+  padding: 4px 10px;
+  border: 2px solid transparent;
   border-radius: 999px;
   color: #4e342e;
   background: #fff3e0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.stage-world-panel > .stage-result-mark {
-  display: inline-block;
-  margin-top: 7px;
+.stage-world-panel-tag-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 32px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.stage-world-panel-tag ruby {
+  white-space: nowrap;
+}
+
+.stage-world-panel-tag rt {
+  font-size: 0.58em;
+  line-height: 1;
+}
+
+.stage-world-panel-tag .ruby-placeholder rt {
+  visibility: hidden;
+}
+
+.stage-world-panel-tag-target {
+  color: #4e342e;
+  background: #fff3e0;
+}
+
+.stage-world-panel-tag-unplayed {
+  color: #01579b;
+  background: #e1f5fe;
+}
+
+.stage-world-panel-tag-late {
+  color: #6d3b00;
+  border-color: #ef6c00;
+  background: #ffe0b2;
+}
+
+.stage-world-panel-tag-within {
+  color: #1b5e20;
+  border-color: #2e7d32;
+  background: #c8e6c9;
+}
+
+.stage-world-panel-tag-perfect {
+  border-color: #2e7d32;
+  color: #ffffff;
+  background: linear-gradient(180deg, #43a047, #1b5e20);
+  font-size: 17px;
+  box-shadow: 0 5px 0 rgb(27 94 32 / 36%);
+}
+
+.stage-world-panel-tag-bonus {
+  border-color: #6a1b9a;
+  color: #ffffff;
+  background: linear-gradient(180deg, #8e24aa, #4a148c);
+  font-size: 17px;
+  box-shadow: 0 5px 0 rgb(74 20 140 / 32%);
 }
 
 .stage-world-controls {
@@ -627,7 +621,8 @@
   align-items: center;
   justify-items: center;
   margin-inline: auto;
-  padding: 10px;
+  min-height: 118px;
+  padding: 14px;
   border: 3px solid #90a4ae;
   border-radius: 18px;
   background: #f7fbfc;
@@ -636,7 +631,7 @@
 
 .stage-world-move-button {
   width: 104px;
-  height: 72px;
+  height: 82px;
   border: 3px solid #607d8b;
   border-radius: 16px;
   color: #263238;
@@ -674,7 +669,7 @@
 .stage-world-enter-button {
   grid-area: enter;
   width: 100%;
-  min-height: 72px;
+  min-height: 82px;
   padding-inline: 12px;
   font-size: 24px;
 }
@@ -904,9 +899,33 @@
   background: #90caf9;
 }
 
-.estimate-stage-select .stage-world-panel-tags span {
+.estimate-stage-select .stage-world-panel-tag {
   color: #dceefa;
   background: rgb(144 202 249 / 16%);
+}
+
+.estimate-stage-select .stage-world-panel-tag-late {
+  color: #ffe0b2;
+  border-color: #ffb74d;
+  background: rgb(255 183 77 / 22%);
+}
+
+.estimate-stage-select .stage-world-panel-tag-within {
+  color: #c8e6c9;
+  border-color: #81c784;
+  background: rgb(129 199 132 / 20%);
+}
+
+.estimate-stage-select .stage-world-panel-tag-perfect {
+  color: #ffffff;
+  border-color: #81c784;
+  background: linear-gradient(180deg, #43a047, #1b5e20);
+}
+
+.estimate-stage-select .stage-world-panel-tag-bonus {
+  color: #ffffff;
+  border-color: #ce93d8;
+  background: linear-gradient(180deg, #8e24aa, #4a148c);
 }
 
 .estimate-stage-select .stage-world-move-button {
@@ -3124,22 +3143,6 @@
 
   .stage-world-node.tutorial-stage-card .stage-number {
     font-size: 14px;
-  }
-
-  .stage-condition-icon,
-  .stage-fast-rail-bonus-mark {
-    top: 4px;
-    width: 24px;
-    height: 24px;
-    font-size: 13px;
-  }
-
-  .stage-condition-icon {
-    left: 4px;
-  }
-
-  .stage-fast-rail-bonus-mark {
-    right: 4px;
   }
 
   .stage-world-player {
