@@ -879,6 +879,10 @@ function StageListIcon() {
 }
 
 const RUBY_DEFINITIONS = {
+  未接続: 'みせつぞく',
+  見積もり: 'みつもり',
+  入る: 'はいる',
+  通る: 'とおる',
   中継地点: 'ちゅうけいちてん',
   目標時間: 'もくひょうじかん',
   予想時間: 'よそうじかん',
@@ -3239,7 +3243,7 @@ function App() {
       )}
 
       {screen === 'game' && currentStage && (
-        <div className={`screen game-screen ${estimateMode ? 'estimate-mode' : ''} ${hasTutorialOverlay ? 'tutorial-active' : ''}`}>
+        <div className={`screen game-screen ${estimateMode ? 'estimate-mode' : ''} ${currentStage.turnaroundPoints?.length ? 'has-turnaround' : ''} ${hasTutorialOverlay ? 'tutorial-active' : ''}`}>
           <div className="game-header">
             <h2><RubyText text={currentStage.title} /></h2>
             <button
@@ -3784,11 +3788,11 @@ function App() {
                   <RubyText>目標時間以内</RubyText>
                 </strong>
               </p>
-              <p className="result-summary-card">
+              <p className="result-summary-card result-summary-target">
                 <span><RubyText>目標</RubyText></span>
                 <strong><RubyText text={`${result.targetTime}秒`} /></strong>
               </p>
-              <p className="result-summary-card">
+              <p className="result-summary-card result-summary-actual">
                 <span><RubyText>実際</RubyText></span>
                 <strong><RubyText text={`${result.actualTime.toFixed(1)}秒`} /></strong>
               </p>

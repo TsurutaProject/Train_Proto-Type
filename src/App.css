@@ -2423,47 +2423,47 @@
 }
 
 .result-box-perfect {
-  border-color: #ef6c00;
+  border-color: #43a047;
   background:
     repeating-linear-gradient(
       90deg,
       transparent 0 58px,
-      rgb(239 108 0 / 10%) 58px 64px
+      rgb(67 160 71 / 9%) 58px 64px
     ),
-    linear-gradient(180deg, #fff8e1, #ffcc80 62%, #fff3e0);
+    linear-gradient(180deg, #fffdf5, #e8f5e9 62%, #f1f8e9);
   box-shadow:
-    0 11px 0 #bf360c,
-    0 0 0 8px rgb(255 152 0 / 22%),
-    0 24px 46px rgb(191 54 12 / 20%);
+    0 11px 0 #2e7d32,
+    0 0 0 8px rgb(76 175 80 / 20%),
+    0 24px 46px rgb(46 125 50 / 18%);
 }
 
 .result-box-perfect::before {
-  border-bottom-color: #bf360c;
+  border-bottom-color: #2e7d32;
   background:
     linear-gradient(180deg, rgb(255 255 255 / 22%), transparent 48%),
-    linear-gradient(180deg, #fb8c00, #ef6c00);
+    linear-gradient(180deg, #66bb6a, #388e3c);
 }
 
 .result-box-miss {
-  border-color: #ef6c00;
+  border-color: #e53935;
   background:
     repeating-linear-gradient(
       90deg,
       transparent 0 58px,
-      rgb(239 108 0 / 10%) 58px 64px
+      rgb(229 57 53 / 8%) 58px 64px
     ),
-    linear-gradient(180deg, #fff8e1, #ffcc80 62%, #fff3e0);
+    linear-gradient(180deg, #fffdf5, #ffebee 62%, #fff5f5);
   box-shadow:
-    0 11px 0 #bf360c,
-    0 0 0 8px rgb(255 152 0 / 22%),
-    0 24px 46px rgb(191 54 12 / 20%);
+    0 11px 0 #b71c1c,
+    0 0 0 8px rgb(244 67 54 / 18%),
+    0 24px 46px rgb(183 28 28 / 18%);
 }
 
 .result-box-miss::before {
-  border-bottom-color: #bf360c;
+  border-bottom-color: #b71c1c;
   background:
     linear-gradient(180deg, rgb(255 255 255 / 22%), transparent 48%),
-    linear-gradient(180deg, #fb8c00, #ef6c00);
+    linear-gradient(180deg, #ef5350, #c62828);
 }
 
 .result-box-estimate {
@@ -2485,13 +2485,13 @@
 }
 
 .result-box-perfect .result-status-badge {
-  background: linear-gradient(180deg, #fb8c00, #ef6c00);
-  box-shadow: 0 6px 14px rgb(239 108 0 / 24%);
+  background: linear-gradient(180deg, #66bb6a, #2e7d32);
+  box-shadow: 0 6px 14px rgb(46 125 50 / 24%);
 }
 
 .result-box-miss .result-status-badge {
-  background: linear-gradient(180deg, #fb8c00, #ef6c00);
-  box-shadow: 0 6px 14px rgb(239 108 0 / 24%);
+  background: linear-gradient(180deg, #ef5350, #c62828);
+  box-shadow: 0 6px 14px rgb(183 28 28 / 24%);
 }
 
 .result-box h1 {
@@ -2502,13 +2502,13 @@
 }
 
 .result-box-perfect h1 {
-  color: #bf360c;
-  text-shadow: 0 4px 0 rgb(255 224 178 / 90%);
+  color: #2e7d32;
+  text-shadow: 0 4px 0 rgb(200 230 201 / 90%);
 }
 
 .result-box-miss h1 {
-  color: #bf360c;
-  text-shadow: 0 4px 0 rgb(255 224 178 / 90%);
+  color: #b71c1c;
+  text-shadow: 0 4px 0 rgb(255 205 210 / 90%);
 }
 
 .result-summary-grid {
@@ -2545,22 +2545,45 @@
   white-space: nowrap;
 }
 
-.result-box-perfect .result-summary-card {
+.result-summary-condition {
+  border-color: #42a5f5;
+  background: #e3f2fd;
+}
+
+.result-summary-condition strong {
+  color: #1565c0;
+}
+
+.result-summary-target {
+  border-color: #ffb300;
+  background: #fff8e1;
+}
+
+.result-summary-target strong {
+  color: #e65100;
+}
+
+.result-summary-actual {
   border-color: #ef6c00;
-  background: rgb(255 243 224 / 88%);
+  background: #fff3e0;
 }
 
-.result-box-perfect .result-summary-card strong {
-  color: #bf360c;
+.result-box-perfect .result-summary-actual {
+  border-color: #43a047;
+  background: #e8f5e9;
 }
 
-.result-box-miss .result-summary-card {
-  border-color: #ef6c00;
-  background: rgb(255 243 224 / 88%);
+.result-box-perfect .result-summary-actual strong {
+  color: #2e7d32;
 }
 
-.result-box-miss .result-summary-card strong {
-  color: #bf360c;
+.result-box-miss .result-summary-actual {
+  border-color: #e53935;
+  background: #ffebee;
+}
+
+.result-box-miss .result-summary-actual strong {
+  color: #b71c1c;
 }
 
 .result-summary-condition strong {
@@ -2587,29 +2610,29 @@
 }
 
 .result-box-perfect .result-message {
-  border-color: #ef6c00;
-  color: #6d3b00;
+  border-color: #43a047;
+  color: #1b5e20;
   background:
     repeating-linear-gradient(
       90deg,
       transparent 0 42px,
-      rgb(239 108 0 / 10%) 42px 47px
+      rgb(67 160 71 / 10%) 42px 47px
     ),
-    linear-gradient(180deg, #fff8e1, #ffcc80);
-  box-shadow: 0 7px 0 rgb(239 108 0 / 28%);
+    linear-gradient(180deg, #f1f8e9, #c8e6c9);
+  box-shadow: 0 7px 0 rgb(46 125 50 / 28%);
 }
 
 .result-box-miss .result-message {
-  border-color: #ef6c00;
-  color: #6d3b00;
+  border-color: #e53935;
+  color: #b71c1c;
   background:
     repeating-linear-gradient(
       90deg,
       transparent 0 42px,
-      rgb(239 108 0 / 10%) 42px 47px
+      rgb(229 57 53 / 9%) 42px 47px
     ),
-    linear-gradient(180deg, #fff8e1, #ffcc80);
-  box-shadow: 0 7px 0 rgb(239 108 0 / 28%);
+    linear-gradient(180deg, #fff5f5, #ffcdd2);
+  box-shadow: 0 7px 0 rgb(183 28 28 / 24%);
 }
 
 .result-box .fast-rail-saving-feedback {
@@ -2986,6 +3009,74 @@
     width: 34px;
     height: 34px;
     flex-basis: 34px;
+  }
+
+  .game-screen.has-turnaround {
+    row-gap: 4px;
+  }
+
+  .game-screen.has-turnaround .turnaround-demo-open-button {
+    margin: 0;
+    padding: 5px 12px;
+  }
+
+  .game-screen.has-turnaround .rail-yard {
+    padding: 8px;
+  }
+
+  .game-screen.has-turnaround .rail-yard-heading {
+    margin-bottom: 4px;
+  }
+
+  .game-screen.has-turnaround .rail-card,
+  .game-screen.has-turnaround .clear-rails-button {
+    min-height: 48px;
+    padding: 7px 10px;
+  }
+
+  .game-screen.has-turnaround .rail-selection-description {
+    margin-top: 5px;
+    font-size: 14px;
+  }
+
+  .game-screen.has-turnaround .stage-constraints strong,
+  .game-screen.has-turnaround .stage-constraints span {
+    padding: 5px 7px;
+    font-size: 14px;
+  }
+
+  .game-screen.has-turnaround .time-panel {
+    padding: 9px 12px;
+  }
+
+  .game-screen.has-turnaround .time-panel strong,
+  .game-screen.has-turnaround .time-panel-waiting strong {
+    font-size: 36px;
+  }
+
+  .game-screen.has-turnaround .time-panel-note {
+    font-size: 13px;
+  }
+
+  .game-screen.has-turnaround .rail-info {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .game-screen.has-turnaround .rail-info-item {
+    flex-direction: column;
+    gap: 2px;
+    padding: 3px;
+    font-size: 11px;
+  }
+
+  .game-screen.has-turnaround .rail-info-item img {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+  }
+
+  .game-screen.has-turnaround > .main-button {
+    min-height: 54px;
   }
 
   .train-status {
