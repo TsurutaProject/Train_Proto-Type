@@ -1241,6 +1241,8 @@ function App() {
   const [userEstimatedTime, setUserEstimatedTime] = useState('')
   const [estimateMemo, setEstimateMemo] = useState(EMPTY_ESTIMATE_MEMO)
   const [tutorialSkipped, setTutorialSkipped] = useState(false)
+  const [tutorialRailDeleted, setTutorialRailDeleted] = useState(false)
+  const [tutorialRailsCleared, setTutorialRailsCleared] = useState(false)
   const [turnaroundDemoOpen, setTurnaroundDemoOpen] = useState(false)
   const [turnaroundDemoPlaying, setTurnaroundDemoPlaying] = useState(false)
   const mapRef = useRef(null)
@@ -1282,6 +1284,8 @@ function App() {
     setUserEstimatedTime('')
     setEstimateMemo(EMPTY_ESTIMATE_MEMO)
     setTutorialSkipped(false)
+    setTutorialRailDeleted(false)
+    setTutorialRailsCleared(false)
     setTurnaroundDemoOpen(false)
     setTurnaroundDemoPlaying(false)
     setScreen('game')
@@ -1396,7 +1400,14 @@ function App() {
   const placeSlowRail = (x, y) => {
     const position = { x, y }
 
-    if (isSpecialCell(x, y) || getObstacleAt(position) || trainRun) return
+    if (
+      isSpecialCell(x, y) ||
+      getObstacleAt(position) ||
+      trainRun ||
+      (tutorialStep && !isTutorialTargetCell(x, y))
+    ) {
+      return
+    }
 
     setMessage('')
     setPlacedRails((previousRails) => {
@@ -1414,6 +1425,18 @@ function App() {
   }
 
   const removeRail = (x, y) => {
+    if (tutorialStep && !isTutorialTargetCell(x, y)) return
+
+    if (
+      currentStage?.isTutorial &&
+      !currentStage.isEstimateTutorial &&
+      tutorialStep === 2 &&
+      x === 1 &&
+      y === currentStage.start.y
+    ) {
+      setTutorialRailDeleted(true)
+    }
+
     setPlacedRails((previousRails) =>
       previousRails.filter((rail) => rail.x !== x || rail.y !== y),
     )
@@ -1507,12 +1530,28 @@ function App() {
   const toggleRail = (x, y) => {
     const position = { x, y }
 
-    if (isSpecialCell(x, y) || getObstacleAt(position) || trainRun) return
+    if (
+      isSpecialCell(x, y) ||
+      getObstacleAt(position) ||
+      trainRun ||
+      (tutorialStep && !isTutorialTargetCell(x, y))
+    ) {
+      return
+    }
     setMessage('')
 
     const rail = getRailAt(x, y)
 
     if (rail?.type === selectedRailType) {
+      if (
+        currentStage?.isTutorial &&
+        !currentStage.isEstimateTutorial &&
+        tutorialStep === 2 &&
+        x === 1 &&
+        y === currentStage.start.y
+      ) {
+        setTutorialRailDeleted(true)
+      }
       setPlacedRails(placedRails.filter((item) => !(item.x === x && item.y === y)))
       return
     }
@@ -2611,6 +2650,9 @@ function App() {
   const tutorialFirstRail = currentStage?.isTutorial
     ? getRailAt(1, currentStage.start.y)
     : null
+  const tutorialSecondRail = currentStage?.isTutorial
+    ? getRailAt(2, currentStage.start.y)
+    : null
   const tutorialExitRail = currentStage?.isTutorial
     ? getRailAt(5, currentStage.start.y)
     : null
@@ -2633,8 +2675,9 @@ function App() {
     estimateMemo.fastRails === '0' &&
     estimateMemo.congestionPasses === '0' &&
     estimateMemo.repeatedCells === '0'
-  const tutorialTotalSteps =
-    currentStage?.isEstimateTutorial || isFastRailTutorialActive ? 7 : 5
+  const tutorialTotalSteps = currentStage?.isEstimateTutorial || isFastRailTutorialActive
+    ? 7
+    : 9
   const fastRailTutorialStep = !isFastRailTutorialActive
     ? null
     : !fastRailTutorialFirstSlowComplete
@@ -2656,28 +2699,46 @@ function App() {
     ? null
     : isFastRailTutorialActive
       ? fastRailTutorialStep
-      : shortestRoute
-      ? currentStage.isEstimateTutorial
-        ? userEstimatedTime === '6'
-          ? 7
-          : estimateTutorialMemoComplete
-            ? 6
-            : 5
-        : 5
-      : tutorialExitRail
-        ? 4
-        : connectedRelayRoute
-          ? 3
-          : tutorialFirstRail
+      : currentStage.isEstimateTutorial
+        ? shortestRoute
+          ? userEstimatedTime === '6'
+            ? 7
+            : estimateTutorialMemoComplete
+              ? 6
+              : 5
+          : tutorialExitRail
+            ? 4
+            : connectedRelayRoute
+              ? 3
+              : tutorialFirstRail
+                ? 2
+                : 1
+        : !tutorialFirstRail
+          ? tutorialRailsCleared
+            ? 5
+            : tutorialRailDeleted
+              ? 3
+              : 1
+          : !tutorialRailDeleted
             ? 2
-            : 1
+            : !tutorialRailsCleared
+              ? 4
+              : !tutorialSecondRail
+                ? 6
+                : !tutorialExitRail
+                  ? 7
+                  : shortestRoute
+                    ? 9
+                    : 8
   const specialTutorialKind =
     !tutorialSkipped && !trainRun && !tutorialStep && !currentStage?.isTutorial
       ? selectedStage === '3' &&
           currentStage?.relayGroups?.length > 0 &&
           !currentStage?.isTurnaroundTutorial
           ? 'relay'
-          : null
+          : selectedStage === '4' && currentStage?.obstacles?.length > 0
+            ? 'obstacleCurve'
+            : null
       : null
   const currentStageResultKey = selectedStage
     ? getStageResultKey(selectedStage, estimateMode)
@@ -2699,84 +2760,100 @@ function App() {
   )
   const standardTutorialInstructions = {
     1: {
-      title: 'レールを置いてみよう',
-      body: '低速レールは選択済みです。スタートの右にある、黄色い枠の空きマスを押してください。',
+      title: 'レールを置こう',
+      body: '黄色のマスを押そう',
     },
     2: {
-      title: '中継地点までつなごう',
-      body: '同じ列の空きマスにもう1本レールを置き、黄色い中継地点までつなげてください。',
+      title: 'レールを消そう',
+      body: '置いたレールを押そう',
     },
     3: {
-      title: 'ゴースト電車を確認しよう',
-      body: '半透明の電車が接続済みルートを繰り返し走ります。確認できたら、トンネルの右にレールを置いてゴールへつなげましょう。',
+      title: 'もう一度置こう',
+      body: '黄色のマスを押そう',
     },
     4: {
-      title: '2つのルートから選ぼう',
-      body: '右へ進んでから下へ曲がるか、先に下へ曲がるかを選び、どちらか1マスにレールを置いてください。',
+      title: '全部片付けよう',
+      body: '全て片付けるを押そう',
     },
     5: {
-      title: '準備完了！ 出発しよう',
-      body: 'ゴールまでつながりました。予想時間を確認して「出発」を押してください。',
+      title: '中継地点へ進もう',
+      body: '黄色のマスを押そう',
+    },
+    6: {
+      title: '中継地点へつなごう',
+      body: '次のマスを押そう',
+    },
+    7: {
+      title: '電車を見てみよう',
+      body: 'トンネル右を押そう',
+    },
+    8: {
+      title: 'ゴールへつなごう',
+      body: 'どちらかを押そう',
+    },
+    9: {
+      title: '出発しよう',
+      body: '出発を押そう',
     },
   }
   const fastRailTutorialInstructions = {
     1: {
-      title: 'まずは低速レールを置こう',
-      body: '低速レールは選択済みです。スタートの右にある、黄色い枠の空きマスを押してください。',
+      title: '低速レールを置こう',
+      body: '黄色のマスを押そう',
     },
     2: {
-      title: '高速レールに切り替えよう',
-      body: 'レール選択の「高速レール」を押してください。高速レールは1マスを0.5秒で進みます。',
+      title: '高速レールを選ぼう',
+      body: '高速レールを押そう',
     },
     3: {
       title: '高速レールを置こう',
-      body: '黄色い枠のマスを押して、高速レールを1本置いてください。',
+      body: '黄色のマスを押そう',
     },
     4: {
-      title: 'もう1本高速レールを置こう',
-      body: '続けて黄色い枠のマスに高速レールを置き、目標時間に近づけましょう。',
+      title: 'もう1本置こう',
+      body: '黄色のマスを押そう',
     },
     5: {
-      title: '低速レールに戻そう',
-      body: 'レール選択の「低速レール」を押してください。必要な場所だけ高速にする練習です。',
+      title: '低速レールを選ぼう',
+      body: '低速レールを押そう',
     },
     6: {
-      title: 'ゴールまでつなごう',
-      body: '黄色い枠の3マスを低速レールでつなげてください。ドラッグでまとめて配置できます。',
+      title: 'ゴールへつなごう',
+      body: '黄色の3マスを置こう',
     },
     7: {
-      title: '準備完了！ 出発しよう',
-      body: '低速と高速を切り替えて、5秒のルートができました。「出発」を押してください。',
+      title: '出発しよう',
+      body: '出発を押そう',
     },
   }
   const estimateTutorialInstructions = {
     1: {
       title: '低速レールを置こう',
-      body: '低速レールは選択済みです。盤面で黄色い枠になっている、スタート右のマスを押してください。',
+      body: '黄色のマスを押そう',
     },
     2: {
       title: '中継地点までつなごう',
-      body: '次に黄色い枠になったマスを押して、中継地点までレールをつなげてください。',
+      body: '次のマスを押そう',
     },
     3: {
-      title: 'プレビューを確認しよう',
-      body: 'ゴースト電車が接続済みルートを走ります。確認したら、トンネル右の黄色い枠のマスを押してください。',
+      title: '電車を見てみよう',
+      body: 'トンネル右を押そう',
     },
     4: {
       title: 'ゴールへつなごう',
-      body: '黄色い枠の2マスからどちらか一方を押すと、ゴールまで接続できます。',
+      body: 'どちらかを押そう',
     },
     5: {
-      title: '見積もりメモを入力しよう',
-      body: '強調されたメモへ、低速レール「4」、残り3項目へ「0」を入力してください。',
+      title: '数をメモしよう',
+      body: '低速4、他は0を入力',
     },
     6: {
-      title: '予想時間を入力しよう',
-      body: '強調された「自分の予想」へ「6」と入力してください。',
+      title: '予想時間を入力',
+      body: '予想に6を入力',
     },
     7: {
-      title: '出発して答え合わせしよう',
-      body: '準備完了です。黄色い枠の「出発」を押すと、予想時間と内訳が表示されます。',
+      title: '出発しよう',
+      body: '出発を押そう',
     },
   }
   const tutorialInstructions = currentStage?.isEstimateTutorial
@@ -2807,6 +2884,13 @@ function App() {
       return Boolean(getTurnaroundPointAt({ x, y }))
     }
 
+    if (specialTutorialKind === 'obstacleCurve') {
+      return (
+        (x === 3 && y === currentStage.start.y) ||
+        (x === 2 && y === currentStage.start.y - 1)
+      )
+    }
+
     return false
   }
 
@@ -2823,10 +2907,25 @@ function App() {
       return false
     }
 
-    if (tutorialStep === 1) return x === 1 && y === currentStage.start.y
-    if (tutorialStep === 2) return x === 2 && y === currentStage.start.y
-    if (tutorialStep === 3) return x === 5 && y === currentStage.start.y
-    if (tutorialStep === 4) {
+    if (currentStage.isEstimateTutorial) {
+      if (tutorialStep === 1) return x === 1 && y === currentStage.start.y
+      if (tutorialStep === 2) return x === 2 && y === currentStage.start.y
+      if (tutorialStep === 3) return x === 5 && y === currentStage.start.y
+      if (tutorialStep === 4) {
+        return (
+          (x === 6 && y === currentStage.start.y) ||
+          (x === 5 && y === currentStage.goal.y)
+        )
+      }
+      return false
+    }
+
+    if (tutorialStep === 1 || tutorialStep === 2 || tutorialStep === 3 || tutorialStep === 5) {
+      return x === 1 && y === currentStage.start.y
+    }
+    if (tutorialStep === 6) return x === 2 && y === currentStage.start.y
+    if (tutorialStep === 7) return x === 5 && y === currentStage.start.y
+    if (tutorialStep === 8) {
       return (
         (x === 6 && y === currentStage.start.y) ||
         (x === 5 && y === currentStage.goal.y)
@@ -3318,7 +3417,7 @@ function App() {
             <section className="tutorial-guide tutorial-guide-info" aria-live="polite">
               <div className="tutorial-guide-heading">
                 <span><RubyText>説明</RubyText></span>
-                <h3><RubyText>中継地点を確認しよう</RubyText></h3>
+                <h3><RubyText>中継地点を見よう</RubyText></h3>
                 <button
                   type="button"
                   className="tutorial-skip-button"
@@ -3328,10 +3427,25 @@ function App() {
                 </button>
               </div>
               <p>
-                <RubyText>
-                  黄色い枠で強調されたトンネルが中継地点です。クリアするには、スタートからゴールまでの経路の途中で必ず通過してください。
-                </RubyText>
+                <RubyText>中継地点は必ず通ろう</RubyText>
               </p>
+            </section>
+          )}
+
+          {specialTutorialKind === 'obstacleCurve' && (
+            <section className="tutorial-guide tutorial-guide-info" aria-live="polite">
+              <div className="tutorial-guide-heading">
+                <span><RubyText>説明</RubyText></span>
+                <h3><RubyText>障害物をよけよう</RubyText></h3>
+                <button
+                  type="button"
+                  className="tutorial-skip-button"
+                  onClick={() => setTutorialSkipped(true)}
+                >
+                  <RubyText>スキップ</RubyText>
+                </button>
+              </div>
+              <p><RubyText>縦置きでカーブ接続</RubyText></p>
             </section>
           )}
 
@@ -3339,7 +3453,7 @@ function App() {
             <section className="tutorial-guide turnaround-demo-guide" aria-live="polite">
               <div className="tutorial-guide-heading">
                 <span><RubyText>デモ</RubyText></span>
-                <h3><RubyText>折り返し地点の動きを見よう</RubyText></h3>
+                <h3><RubyText>折り返し地点を見よう</RubyText></h3>
                 <button
                   type="button"
                   className="tutorial-skip-button"
@@ -3369,9 +3483,7 @@ function App() {
                 <RubyText>{turnaroundDemoPlaying ? 'もう一度再生' : '再生'}</RubyText>
               </button>
               <p>
-                <RubyText>
-                  電車はスタートからレバーへ進み、折り返して同じレールを戻ります。戻ってきた途中でレールが曲がるルートに切り替わり、ゴールへ向かいます。
-                </RubyText>
+                <RubyText>レバーで戻り道を変える</RubyText>
               </p>
             </section>
           )}
@@ -3408,15 +3520,22 @@ function App() {
                 </button>
               ))}
               <button
-                className="clear-rails-button"
                 disabled={
                   placedRails.length === 0 ||
                   Boolean(trainRun) ||
-                  Boolean(tutorialStep)
+                  Boolean(tutorialStep && tutorialStep !== 4)
                 }
+                className={`clear-rails-button ${tutorialStep === 4 ? 'tutorial-control-highlight' : ''}`}
                 onClick={() => {
                   setPlacedRails([])
                   setMessage('')
+                  if (
+                    currentStage.isTutorial &&
+                    !currentStage.isEstimateTutorial &&
+                    tutorialStep === 4
+                  ) {
+                    setTutorialRailsCleared(true)
+                  }
                 }}
               >
                 <RubyText>全て片付ける</RubyText>
