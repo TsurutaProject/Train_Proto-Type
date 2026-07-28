@@ -1106,7 +1106,7 @@
 
 .tutorial-guide-heading {
   display: grid;
-  grid-template-columns: 82px 1fr 82px;
+  grid-template-columns: 110px minmax(0, 1fr) 110px;
   align-items: center;
   gap: 8px;
 }
@@ -1118,6 +1118,11 @@
   font-size: 18px;
   font-weight: 900;
   text-align: left;
+}
+
+.tutorial-guide-heading > span,
+.tutorial-skip-button {
+  white-space: nowrap;
 }
 
 .tutorial-guide-heading h3,
@@ -3164,7 +3169,7 @@
   }
 
   .tutorial-guide-heading {
-    grid-template-columns: 58px 1fr 58px;
+    grid-template-columns: 76px minmax(0, 1fr) 76px;
   }
 
   .tutorial-guide-heading h3 {
