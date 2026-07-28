@@ -433,6 +433,14 @@
   font-size: 42px;
   font-weight: 900;
   line-height: 1;
+  text-align: center;
+}
+
+.stage-world-node:not(.tutorial-stage-card) .stage-number {
+  min-width: 2.2ch;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: 0.04em;
 }
 
 .stage-world-node.tutorial-stage-card .stage-number {

@@ -881,6 +881,10 @@ function StageListIcon() {
 const RUBY_DEFINITIONS = {
   未接続: 'みせつぞく',
   見積もり: 'みつもり',
+  横中継: 'よこちゅうけい',
+  縦中継: 'たてちゅうけい',
+  折り返し: 'おりかえし',
+  別の高さ: 'べつのたかさ',
   入る: 'はいる',
   通る: 'とおる',
   中継地点: 'ちゅうけいちてん',
@@ -891,7 +895,6 @@ const RUBY_DEFINITIONS = {
   追加評価: 'ついかひょうか',
   最小本数: 'さいしょうほんすう',
   時間以内: 'じかんいない',
-  未プレイ: 'みぷれい',
   接続済: 'せつぞくず',
   半透明: 'はんとうめい',
   準備完了: 'じゅんびかんりょう',
@@ -1174,7 +1177,9 @@ function RubyText({ balancePlainText = false, children, text }) {
         )
       } else {
         parts.push(
-          balancePlainText && !/\s/u.test(character) ? (
+          balancePlainText &&
+            !/\s/u.test(character) &&
+            !/[ぁ-ゖァ-ヶー]/u.test(character) ? (
             <ruby className="ruby-placeholder" key={`plain-${character}-${index}`}>
               {character}
               <rt aria-hidden="true">{'\u00a0'}</rt>
@@ -3148,7 +3153,7 @@ function App() {
                     <button
                       key={node.stageNumber}
                       type="button"
-                      className={`stage-world-node stage-world-node-${stageWorldStatus} ${isCurrentWorldNode ? 'current-stage-world-node' : ''} ${stage.isTutorial || stage.isTurnaroundTutorial ? 'tutorial-stage-card' : ''} ${isClearedStage ? 'completed-stage-card' : ''} ${isStageConditionUnmet ? 'off-time-stage-card' : ''}`}
+                      className={`stage-world-node stage-world-node-${stageWorldStatus} ${isCurrentWorldNode ? 'current-stage-world-node' : ''} ${stage.isTutorial ? 'tutorial-stage-card' : ''} ${isClearedStage ? 'completed-stage-card' : ''} ${isStageConditionUnmet ? 'off-time-stage-card' : ''}`}
                       style={{
                         '--stage-world-node-x': `${getStageWorldNodeLeftPx(node)}px`,
                         '--stage-world-node-y': `${getStageWorldNodeTopPx(node)}px`,
