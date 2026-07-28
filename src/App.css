@@ -1115,7 +1115,7 @@
   padding: 0;
   color: #795548;
   background: transparent;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 900;
   text-align: left;
 }
@@ -1127,7 +1127,7 @@
 
 .tutorial-guide-heading h3 {
   color: #4e342e;
-  font-size: 22px;
+  font-size: 28px;
 }
 
 .tutorial-skip-button {
@@ -1137,7 +1137,7 @@
   border-bottom: 2px solid currentColor;
   color: #795548;
   background: transparent;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 900;
   cursor: pointer;
 }
@@ -1149,9 +1149,9 @@
 .tutorial-guide p {
   margin: 10px auto 0;
   max-width: 590px;
-  font-size: 16px;
+  font-size: 22px;
   font-weight: 700;
-  line-height: 1.6;
+  line-height: 1.45;
 }
 
 .tutorial-guide ruby,
@@ -2815,13 +2815,13 @@
   }
 
   .tutorial-guide-heading h3 {
-    font-size: 22px;
+    font-size: 28px;
   }
 
   .tutorial-guide p {
     margin-top: 10px;
-    font-size: 16px;
-    line-height: 1.6;
+    font-size: 22px;
+    line-height: 1.45;
   }
 
   .tutorial-progress {
@@ -3168,12 +3168,12 @@
   }
 
   .tutorial-guide-heading h3 {
-    font-size: 18px;
+    font-size: 22px;
   }
 
   .tutorial-guide-heading span,
   .tutorial-guide p {
-    font-size: 13px;
+    font-size: 18px;
   }
 
   .stage-list {
