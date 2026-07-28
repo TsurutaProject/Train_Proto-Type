@@ -1,9 +1,4 @@
-import { readFileSync } from 'node:fs'
-
-const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')
-const stagesStart = appSource.indexOf('const STAGES =') + 'const STAGES ='.length
-const stagesEnd = appSource.indexOf('\n\nconst STAGE_ORDER')
-const STAGES = Function(`"use strict"; return (${appSource.slice(stagesStart, stagesEnd)})`)()
+import { STAGES } from '../src/stages.js'
 
 const directions = [
   { x: 0, y: -1, name: 'up' },

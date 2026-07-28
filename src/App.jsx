@@ -5,6 +5,13 @@ import {
   getFastRailSavingsMessage,
   isWithinTargetTime,
 } from './fastRailSavings.js'
+import { STAGES } from './stages.js'
+import { RubyText } from './components/RubyText.jsx'
+import {
+  estimateTutorialInstructions,
+  fastRailTutorialInstructions,
+  standardTutorialInstructions,
+} from './tutorialInstructions.js'
 import blueTrainLeftImage from './assets/train-game/blue-train-left.png'
 import blueTrainRightImage from './assets/train-game/blue-train-right.png'
 import curvedRailImage from './assets/train-game/curved-rail.png'
@@ -22,433 +29,6 @@ const TRAIN_CARS = [
   { key: 'rear', image: blueTrainLeftImage, offset: -0.21 },
   { key: 'front', image: blueTrainRightImage, offset: 0.21 },
 ]
-
-const STAGES = {
-  tutorial: {
-    title: 'チュートリアル',
-    badge: '練習',
-    description: '操作ガイドを見ながら電車を走らせよう',
-    isTutorial: true,
-    targetTime: 6,
-    width: 7,
-    height: 8,
-    start: { x: 0, y: 2 },
-    goal: { x: 6, y: 3 },
-    relayGroups: [
-      {
-        cells: [
-          { x: 3, y: 2, part: 'entrance-right' },
-          { x: 4, y: 2, part: 'entrance' },
-        ],
-      },
-    ],
-    availableRails: ['slow'],
-  },
-  estimateTutorial: {
-    title: '見積もりチュートリアル',
-    badge: '見積練習',
-    description: 'メモと予想時間を入力して答え合わせしよう',
-    isTutorial: true,
-    isEstimateTutorial: true,
-    targetTime: 6,
-    width: 7,
-    height: 8,
-    start: { x: 0, y: 2 },
-    goal: { x: 6, y: 3 },
-    relayGroups: [
-      {
-        cells: [
-          { x: 3, y: 2, part: 'entrance-right' },
-          { x: 4, y: 2, part: 'entrance' },
-        ],
-      },
-    ],
-    availableRails: ['slow'],
-  },
-  1: {
-    title: 'ステージ1',
-    description: 'まずはレールを置く操作を覚えよう',
-    targetTime: 7,
-    width: 8,
-    height: 8,
-    start: { x: 0, y: 2 },
-    goal: { x: 7, y: 3 },
-    relayGroups: [],
-    availableRails: ['slow'],
-  },
-  2: {
-    title: 'ステージ2',
-    description: '速さの違うレールを使ってみよう',
-    isFastRailTutorial: true,
-    targetTime: 5,
-    width: 8,
-    height: 8,
-    start: { x: 0, y: 2 },
-    goal: { x: 7, y: 2 },
-    relayGroups: [],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 6,
-    minimumRequiredFastRails: 2,
-    enableFastRailSaving: true,
-  },
-  3: {
-    title: 'ステージ3',
-    description: '直進と高速レールを使う遠回りを比べよう',
-    targetTime: 6,
-    width: 8,
-    height: 8,
-    start: { x: 0, y: 2 },
-    goal: { x: 7, y: 2 },
-    relayGroups: [
-      {
-        cells: [
-          { x: 4, y: 2 },
-        ],
-      },
-    ],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 4,
-  },
-  4: {
-    title: 'ステージ4',
-    description: '障害物を避け、近道になる経路を比較しよう',
-    targetTime: 5,
-    width: 8,
-    height: 8,
-    start: { x: 0, y: 2 },
-    goal: { x: 7, y: 2 },
-    relayGroups: [],
-    obstacles: [
-      { x: 3, y: 2, type: 'rock' },
-      { x: 2, y: 3, type: 'tree' },
-      { x: 3, y: 3, type: 'tree' },
-      { x: 4, y: 3, type: 'tree' },
-      { x: 5, y: 3, type: 'tree' },
-    ],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 8,
-    minimumRequiredFastRails: 6,
-    enableFastRailSaving: true,
-  },
-  5: {
-    title: 'ステージ5',
-    description: '岩と木を避け、低速で中継地点へ向かおう',
-    targetTime: 8,
-    width: 9,
-    height: 8,
-    start: { x: 0, y: 2 },
-    goal: { x: 8, y: 2 },
-    relayGroups: [
-      {
-        cells: [
-          { x: 4, y: 2, part: 'entrance-right' },
-          { x: 5, y: 2, part: 'entrance' },
-        ],
-      },
-    ],
-    obstacles: [
-      { x: 2, y: 2, type: 'rock' },
-      { x: 2, y: 3, type: 'tree' },
-    ],
-    availableRails: ['slow', 'fast'],
-    relayRequiresSlowApproach: true,
-  },
-  6: {
-    title: 'ステージ6',
-    description: '目標時間を守りながら高速レールを節約しよう',
-    targetTime: 7,
-    width: 10,
-    height: 8,
-    start: { x: 0, y: 2 },
-    goal: { x: 9, y: 2 },
-    relayGroups: [
-      {
-        cells: [
-          { x: 4, y: 2, part: 'entrance-right' },
-          { x: 5, y: 2, part: 'entrance' },
-        ],
-      },
-    ],
-    obstacles: [],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 6,
-    minimumRequiredFastRails: 2,
-    relayRequiresSlowApproach: true,
-    enableFastRailSaving: true,
-  },
-  7: {
-    title: 'ステージ7',
-    description: '同じ条件を満たす複数の経路を見つけよう',
-    targetTime: 8.5,
-    width: 10,
-    height: 8,
-    start: { x: 0, y: 2 },
-    goal: { x: 9, y: 2 },
-    relayGroups: [
-      {
-        cells: [
-          { x: 4, y: 2, part: 'entrance-right' },
-          { x: 5, y: 2, part: 'entrance' },
-        ],
-      },
-    ],
-    obstacles: [{ x: 7, y: 2, type: 'rock' }],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 3,
-    minimumRequiredFastRails: 3,
-    relayRequiresSlowApproach: true,
-  },
-  8: {
-    title: 'ステージ8',
-    description: '2つの中継地点をすべて通過しよう',
-    targetTime: 10,
-    width: 10,
-    height: 8,
-    start: { x: 0, y: 3 },
-    goal: { x: 9, y: 3 },
-    relayGroups: [
-      {
-        cells: [
-          { x: 3, y: 2, part: 'entrance-right' },
-          { x: 4, y: 2, part: 'entrance' },
-        ],
-      },
-      {
-        cells: [
-          { x: 6, y: 4, part: 'entrance-right' },
-          { x: 7, y: 4, part: 'entrance' },
-        ],
-      },
-    ],
-    obstacles: [],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 4,
-    relayRequiresSlowApproach: true,
-  },
-  9: {
-    title: 'ステージ9',
-    description: '最短経路を外れ、8秒になる遠回りを作ろう',
-    targetTime: 8,
-    width: 8,
-    height: 8,
-    start: { x: 0, y: 3 },
-    goal: { x: 7, y: 3 },
-    relayGroups: [],
-    obstacles: [],
-    availableRails: ['slow'],
-    requiresDetour: true,
-  },
-  10: {
-    title: 'ステージ10',
-    description: '高さの違うゴールと、ゴール前の「のんびり」に挑戦',
-    targetTime: 7.5,
-    width: 9,
-    height: 8,
-    start: { x: 0, y: 1 },
-    goal: { x: 8, y: 6 },
-    relayGroups: [],
-    obstacles: [],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 10,
-    minimumRequiredFastRails: 9,
-    slowZoneRadius: 3,
-    enableFastRailSaving: true,
-  },
-  11: {
-    title: 'ステージ11',
-    description: '横中継を抜けて折り返し、縦中継から別の高さへ進もう',
-    isTurnaroundTutorial: true,
-    targetTime: 15.5,
-    width: 11,
-    height: 8,
-    start: { x: 0, y: 1 },
-    goal: { x: 1, y: 6 },
-    relayGroups: [
-      {
-        cells: [
-          { x: 3, y: 1 },
-          { x: 4, y: 1 },
-        ],
-      },
-      {
-        orientation: 'vertical',
-        cells: [
-          { x: 8, y: 3 },
-          { x: 8, y: 4 },
-        ],
-      },
-    ],
-    turnaroundPoints: [{ x: 9, y: 1 }],
-    obstacles: [
-      { x: 6, y: 2, type: 'tree' },
-      { x: 7, y: 2, type: 'rock' },
-      { x: 9, y: 2, type: 'tree' },
-    ],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 8,
-    relayRequiresSlowApproach: true,
-  },
-  12: {
-    title: 'ステージ12',
-    description: '複数中継・高低差・ゴール前の「のんびり」をまとめて攻略しよう',
-    targetTime: 12,
-    width: 11,
-    height: 8,
-    start: { x: 0, y: 6 },
-    goal: { x: 10, y: 1 },
-    relayGroups: [
-      {
-        cells: [
-          { x: 3, y: 5, part: 'entrance-right' },
-          { x: 4, y: 5, part: 'entrance' },
-        ],
-      },
-      {
-        cells: [
-          { x: 6, y: 2, part: 'entrance-right' },
-          { x: 7, y: 2, part: 'entrance' },
-        ],
-      },
-    ],
-    obstacles: [
-      { x: 4, y: 3, type: 'tree' },
-      { x: 8, y: 4, type: 'rock' },
-    ],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 4,
-    minimumRequiredFastRails: 4,
-    relayRequiresSlowApproach: true,
-    slowZoneRadius: 3,
-  },
-  13: {
-    title: 'ステージ13',
-    description: '塞がれた道を避け、縦トンネルを上下に通過しよう',
-    targetTime: 13,
-    width: 10,
-    height: 8,
-    start: { x: 0, y: 4 },
-    goal: { x: 9, y: 4 },
-    relayGroups: [
-      {
-        orientation: 'vertical',
-        cells: [
-          { x: 5, y: 2 },
-          { x: 5, y: 3 },
-          { x: 5, y: 4 },
-        ],
-      },
-    ],
-    obstacles: [
-      { x: 2, y: 4, type: 'rock' },
-      { x: 3, y: 4, type: 'rock' },
-      { x: 4, y: 4, type: 'tree' },
-    ],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 6,
-    relayRequiresSlowApproach: true,
-  },
-  14: {
-    title: 'ステージ14',
-    description: '混雑区画を迂回するか、高速で抜けるか選ぼう',
-    targetTime: 10,
-    width: 11,
-    height: 8,
-    start: { x: 0, y: 3 },
-    goal: { x: 10, y: 3 },
-    relayGroups: [
-      {
-        cells: [
-          { x: 4, y: 3 },
-          { x: 5, y: 3 },
-        ],
-      },
-    ],
-    obstacles: [],
-    congestionZones: [
-      { x: 6, y: 2 },
-      { x: 7, y: 2 },
-      { x: 8, y: 2 },
-      { x: 6, y: 3 },
-      { x: 7, y: 3 },
-      { x: 8, y: 3 },
-      { x: 6, y: 4 },
-      { x: 7, y: 4 },
-      { x: 8, y: 4 },
-    ],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 9,
-    relayRequiresSlowApproach: true,
-  },
-  15: {
-    title: 'ステージ15',
-    description: '縦トンネルと混雑区画をまとめて攻略しよう',
-    targetTime: 13,
-    width: 11,
-    height: 8,
-    start: { x: 0, y: 6 },
-    goal: { x: 10, y: 1 },
-    relayGroups: [
-      {
-        orientation: 'vertical',
-        cells: [
-          { x: 6, y: 2 },
-          { x: 6, y: 3 },
-          { x: 6, y: 4 },
-        ],
-      },
-    ],
-    obstacles: [],
-    congestionZones: [
-      { x: 2, y: 5 },
-      { x: 3, y: 5 },
-      { x: 4, y: 5 },
-      { x: 2, y: 6 },
-      { x: 3, y: 6 },
-      { x: 4, y: 6 },
-      { x: 2, y: 7 },
-      { x: 3, y: 7 },
-      { x: 4, y: 7 },
-    ],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 5,
-    minimumRequiredFastRails: 5,
-    relayRequiresSlowApproach: true,
-  },
-  16: {
-    title: 'ステージ16',
-    description: '2つの混雑エリアを抜け、折り返してゴールへ向かおう',
-    targetTime: 18,
-    width: 10,
-    height: 8,
-    start: { x: 0, y: 1 },
-    goal: { x: 1, y: 6 },
-    relayGroups: [],
-    turnaroundPoints: [{ x: 9, y: 1 }],
-    obstacles: [],
-    congestionZones: [
-      { x: 2, y: 0 },
-      { x: 3, y: 0 },
-      { x: 4, y: 0 },
-      { x: 2, y: 1 },
-      { x: 3, y: 1 },
-      { x: 4, y: 1 },
-      { x: 2, y: 2 },
-      { x: 3, y: 2 },
-      { x: 4, y: 2 },
-      { x: 4, y: 5 },
-      { x: 5, y: 5 },
-      { x: 6, y: 5 },
-      { x: 4, y: 6 },
-      { x: 5, y: 6 },
-      { x: 6, y: 6 },
-      { x: 4, y: 7 },
-      { x: 5, y: 7 },
-      { x: 6, y: 7 },
-    ],
-    availableRails: ['slow', 'fast'],
-    maxFastRails: 8,
-  },
-}
 
 const STAGE_ORDER = [
   'tutorial',
@@ -587,16 +167,44 @@ const OPPOSITE_DIRECTIONS = {
   left: 'right',
 }
 
+const DEFAULT_RAIL_ASSET = {
+  image: straightRailImage,
+  shape: 'straight',
+  rotation: 90,
+}
+
+const STRAIGHT_RAIL_ROTATIONS = {
+  'down-up': 0,
+  'left-right': 90,
+}
+
+const CURVED_RAIL_ROTATIONS = {
+  'down-right': 0,
+  'down-left': 90,
+  'left-up': 180,
+  'right-up': 270,
+}
+
+const SPECIAL_CELL_IMAGES = {
+  start: redStationBuildingImage,
+  goal: stationBuildingImage,
+  'tunnel-single': tunnelOnePassImage,
+  'tunnel-entrance': tunnelEntranceRailLeftImage,
+  'tunnel-entrance-right': tunnelEntranceRailLeftImage,
+  'tunnel-middle': tunnelMiddleImage,
+}
+
 const ANIMATION_MS_PER_GAME_SECOND = 550
 const TRAIN_ANIMATION_SPEED_MULTIPLIER = 1.5
 const STAGE_RESULTS_STORAGE_KEY = 'train-game-stage-results-v2'
 const EXACT_TIME_TOLERANCE = 0.0001
 
-const getDirectionBetween = (from, to) => {
-  return Object.entries(DIRECTION_STEPS).find(
+const isSamePosition = (a, b) => a.x === b.x && a.y === b.y
+
+const getDirectionBetween = (from, to) =>
+  Object.entries(DIRECTION_STEPS).find(
     ([, step]) => from.x + step.x === to.x && from.y + step.y === to.y,
   )?.[0]
-}
 
 const isExactTimeResult = (stageResult) =>
   Boolean(
@@ -651,49 +259,28 @@ const getStageEvaluationTags = (stage, stageResult) => {
   ]
 
   if (!stageResult) {
-    return [
-      ...tags,
-      {
-        key: 'unplayed',
-        tone: 'unplayed',
-        text: '未プレイ',
-      },
-    ]
-  }
-
-  if (!isStageCleared(stage, stageResult)) {
-    return [
-      ...tags,
-      {
-        key: 'late',
-        tone: 'late',
-        text: `${Math.max(0, stageResult.difference).toFixed(1)}秒遅い`,
-      },
-    ]
-  }
-
-  tags.push({
-    key: 'within',
-    tone: 'within',
-    text: '時間以内',
-  })
-
-  if (isExactTimeResult(stageResult)) {
+    tags.push({ key: 'unplayed', tone: 'unplayed', text: '未プレイ' })
+  } else if (!isStageCleared(stage, stageResult)) {
     tags.push({
-      key: 'perfect',
-      tone: 'perfect',
-      text: 'ぴったり',
+      key: 'late',
+      tone: 'late',
+      text: `${Math.max(0, stageResult.difference).toFixed(1)}秒遅い`,
     })
-  }
+  } else {
+    tags.push({ key: 'within', tone: 'within', text: '時間以内' })
 
-  const fastRailBonusLabel = getStageFastRailBonusLabel(stageResult)
+    if (isExactTimeResult(stageResult)) {
+      tags.push({ key: 'perfect', tone: 'perfect', text: 'ぴったり' })
+    }
 
-  if (fastRailBonusLabel) {
-    tags.push({
-      key: 'fast-rail-bonus',
-      tone: 'bonus',
-      text: fastRailBonusLabel,
-    })
+    const fastRailBonusLabel = getStageFastRailBonusLabel(stageResult)
+    if (fastRailBonusLabel) {
+      tags.push({
+        key: 'fast-rail-bonus',
+        tone: 'bonus',
+        text: fastRailBonusLabel,
+      })
+    }
   }
 
   return tags
@@ -758,51 +345,31 @@ const getRelayGroupOrientation = (relayGroup) => {
 const getRailAssetConfig = (connections) => {
   const directions = [...new Set(connections)]
 
-  if (directions.length === 0) {
-    return {
-      image: straightRailImage,
-      shape: 'straight',
-      rotation: 90,
-    }
-  }
+  if (directions.length === 0) return DEFAULT_RAIL_ASSET
 
   const normalizedDirections =
     directions.length === 1
       ? [directions[0], OPPOSITE_DIRECTIONS[directions[0]]]
       : directions
   const connectionKey = [...normalizedDirections].sort().join('-')
-  const straightRotations = {
-    'down-up': 0,
-    'left-right': 90,
-  }
-  const curveRotations = {
-    'down-right': 0,
-    'down-left': 90,
-    'left-up': 180,
-    'right-up': 270,
-  }
 
-  if (connectionKey in straightRotations) {
+  if (connectionKey in STRAIGHT_RAIL_ROTATIONS) {
     return {
       image: straightRailImage,
       shape: 'straight',
-      rotation: straightRotations[connectionKey],
+      rotation: STRAIGHT_RAIL_ROTATIONS[connectionKey],
     }
   }
 
-  if (connectionKey in curveRotations) {
+  if (connectionKey in CURVED_RAIL_ROTATIONS) {
     return {
       image: curvedRailImage,
       shape: 'curve',
-      rotation: curveRotations[connectionKey],
+      rotation: CURVED_RAIL_ROTATIONS[connectionKey],
     }
   }
 
-  return {
-    image: straightRailImage,
-    shape: 'straight',
-    rotation: 90,
-  }
+  return DEFAULT_RAIL_ASSET
 }
 
 function RailPiece({
@@ -828,20 +395,11 @@ function RailPiece({
 }
 
 function SpecialCellAsset({ type, label, orientation = 'horizontal' }) {
-  const images = {
-    start: redStationBuildingImage,
-    goal: stationBuildingImage,
-    'tunnel-single': tunnelOnePassImage,
-    'tunnel-entrance': tunnelEntranceRailLeftImage,
-    'tunnel-entrance-right': tunnelEntranceRailLeftImage,
-    'tunnel-middle': tunnelMiddleImage,
-  }
-
   return (
     <span
       className={`special-cell-asset special-cell-asset-${type} special-cell-asset-${orientation}`}
     >
-      <img src={images[type]} alt="" aria-hidden="true" />
+      <img src={SPECIAL_CELL_IMAGES[type]} alt="" aria-hidden="true" />
       {label && <span className="special-cell-badge">{label}</span>}
     </span>
   )
@@ -878,326 +436,13 @@ function StageListIcon() {
   )
 }
 
-const RUBY_DEFINITIONS = {
-  未接続: 'みせつぞく',
-  見積もり: 'みつもり',
-  全部: 'ぜんぶ',
-  接続: 'せつぞく',
-  横中継: 'よこちゅうけい',
-  縦中継: 'たてちゅうけい',
-  折り返し: 'おりかえし',
-  別の高さ: 'べつのたかさ',
-  数: 'かず',
-  他: 'ほか',
-  入る: 'はいる',
-  通る: 'とおる',
-  中継地点: 'ちゅうけいちてん',
-  目標時間: 'もくひょうじかん',
-  予想時間: 'よそうじかん',
-  混雑区画: 'こんざつくかく',
-  最短経路: 'さいたんけいろ',
-  追加評価: 'ついかひょうか',
-  最小本数: 'さいしょうほんすう',
-  時間以内: 'じかんいない',
-  接続済: 'せつぞくず',
-  半透明: 'はんとうめい',
-  準備完了: 'じゅんびかんりょう',
-  計算結果: 'けいさんけっか',
-  選択中: 'せんたくちゅう',
-  現在地: 'げんざいち',
-  最終予想時間: 'さいしゅうよそうじかん',
-  区間時間: 'くかんじかん',
-  再生: 'さいせい',
-  一度: 'いちど',
-  見積: 'みつ',
-  通常: 'つうじょう',
-  条件: 'じょうけん',
-  一覧: 'いちらん',
-  地点: 'ちてん',
-  必要: 'ひつよう',
-  節約: 'せつやく',
-  本数: 'ほんすう',
-  到着: 'とうちゃく',
-  出発: 'しゅっぱつ',
-  実際: 'じっさい',
-  結果: 'けっか',
-  選択: 'せんたく',
-  操作: 'そうさ',
-  確認: 'かくにん',
-  予想: 'よそう',
-  目標: 'もくひょう',
-  時間: 'じかん',
-  以内: 'いない',
-  通過: 'つうか',
-  配置: 'はいち',
-  経路: 'けいろ',
-  電車: 'でんしゃ',
-  走行中: 'そうこうちゅう',
-  低速: 'ていそく',
-  高速: 'こうそく',
-  迂回: 'うかい',
-  障害物: 'しょうがいぶつ',
-  複数: 'ふくすう',
-  近道: 'ちかみち',
-  遠回: 'とおまわ',
-  直進: 'ちょくしん',
-  挑戦: 'ちょうせん',
-  攻略: 'こうりゃく',
-  入力: 'にゅうりょく',
-  実績: 'じっせき',
-  説明: 'せつめい',
-  表示: 'ひょうじ',
-  場所: 'ばしょ',
-  役割: 'やくわり',
-  移動: 'いどう',
-  設置: 'せっち',
-  方向: 'ほうこう',
-  途中: 'とちゅう',
-  黄色: 'きいろ',
-  連続: 'れんぞく',
-  盤面: 'ばんめん',
-  自分: 'じぶん',
-  差: 'さ',
-  内訳: 'うちわけ',
-  縦: 'たて',
-  横: 'よこ',
-  横長: 'よこなが',
-  岩: 'いわ',
-  木: 'き',
-  全: 'すべ',
-  同: 'おな',
-  列: 'れつ',
-  右: 'みぎ',
-  左: 'ひだり',
-  左右: 'さゆう',
-  上下: 'じょうげ',
-  秒: 'びょう',
-  遅: 'おそ',
-  本: 'ほん',
-  枠: 'わく',
-  折: 'お',
-  返: 'かえ',
-  閉: 'と',
-  動: 'うご',
-  答: 'こた',
-  合: 'あ',
-  強: 'きょう',
-  調: 'ちょう',
-  比: 'くら',
-  覚: 'おぼ',
-  守: 'まも',
-  見: 'み',
-  作: 'つく',
-  塞: 'ふさ',
-  使: 'つか',
-  方: 'かた',
-  切: 'き',
-  替: 'か',
-  戻: 'もど',
-  避: 'さ',
-  向: 'む',
-  進: 'すす',
-  選: 'えら',
-  遊: 'あそ',
-  開: 'ひら',
-  片: 'かた',
-  付: 'づ',
-  空: 'あ',
-  残: 'のこ',
-}
-
-const KANJI_RUBY_DEFINITIONS = {
-  一: 'いち',
-  上: 'じょう',
-  下: 'げ',
-  中: 'ちゅう',
-  了: 'りょう',
-  予: 'よ',
-  以: 'い',
-  件: 'けん',
-  位: 'い',
-  低: 'てい',
-  価: 'か',
-  倍: 'ばい',
-  備: 'び',
-  先: 'さき',
-  入: 'にゅう',
-  内: 'ない',
-  再: 'さい',
-  出: 'しゅつ',
-  分: 'ぶん',
-  別: 'べつ',
-  到: 'とう',
-  前: 'まえ',
-  力: 'りょく',
-  加: 'か',
-  区: 'く',
-  半: 'はん',
-  回: 'かい',
-  地: 'ち',
-  場: 'ば',
-  変: 'か',
-  外: 'がい',
-  完: 'かん',
-  実: 'じつ',
-  害: 'がい',
-  常: 'じょう',
-  度: 'ど',
-  後: 'あと',
-  必: 'かなら',
-  少: 'すこ',
-  想: 'そう',
-  戦: 'せん',
-  所: 'しょ',
-  扱: 'あつか',
-  抜: 'ぬ',
-  択: 'たく',
-  押: 'お',
-  挑: 'ちょう',
-  接: 'せつ',
-  操: 'そう',
-  攻: 'こう',
-  数: 'すう',
-  早: 'はや',
-  明: 'めい',
-  時: 'じ',
-  曲: 'ま',
-  最: 'さい',
-  未: 'み',
-  条: 'じょう',
-  果: 'か',
-  標: 'ひょう',
-  次: 'つぎ',
-  混: 'こん',
-  済: 'ず',
-  満: 'み',
-  準: 'じゅん',
-  点: 'てん',
-  物: 'ぶつ',
-  生: 'せい',
-  画: 'が',
-  略: 'りゃく',
-  発: 'はつ',
-  盤: 'ばん',
-  目: 'もく',
-  直: 'ちょく',
-  着: 'ちゃく',
-  短: 'たん',
-  確: 'かく',
-  示: 'じ',
-  積: 'つ',
-  算: 'さん',
-  節: 'せつ',
-  約: 'やく',
-  終: 'しゅう',
-  経: 'けい',
-  結: 'けつ',
-  継: 'けい',
-  続: 'つづ',
-  練: 'れん',
-  績: 'せき',
-  繰: 'く',
-  置: 'お',
-  習: 'しゅう',
-  自: 'じ',
-  色: 'いろ',
-  行: 'ぎょう',
-  表: 'ひょう',
-  複: 'ふく',
-  要: 'よう',
-  計: 'けい',
-  訳: 'わけ',
-  評: 'ひょう',
-  試: 'ため',
-  認: 'にん',
-  説: 'せつ',
-  読: 'よ',
-  走: 'そう',
-  路: 'ろ',
-  車: 'しゃ',
-  較: 'かく',
-  込: 'こ',
-  迂: 'う',
-  近: 'ちか',
-  追: 'つい',
-  透: 'とう',
-  途: 'と',
-  通: 'つう',
-  速: 'そく',
-  連: 'れん',
-  過: 'か',
-  道: 'みち',
-  違: 'ちが',
-  遠: 'とお',
-  長: 'なが',
-  配: 'はい',
-  間: 'かん',
-  際: 'さい',
-  障: 'しょう',
-  雑: 'ざつ',
-  電: 'でん',
-  面: 'めん',
-  項: 'こう',
-  高: 'こう',
-  黄: 'き',
-}
-
-const RUBY_TOKENS = Object.keys(RUBY_DEFINITIONS).sort(
-  (a, b) => b.length - a.length,
-)
-
-function RubyText({ balancePlainText = false, children, text }) {
-  const value = text ?? children
-
-  if (typeof value !== 'string') return value
-
-  const parts = []
-  let index = 0
-
-  while (index < value.length) {
-    const token = RUBY_TOKENS.find((candidate) =>
-      value.startsWith(candidate, index),
-    )
-
-    if (token) {
-      parts.push(
-        <ruby key={`${token}-${index}`}>
-          {token}
-          <rt>{RUBY_DEFINITIONS[token]}</rt>
-        </ruby>,
-      )
-      index += token.length
-    } else {
-      const character = value[index]
-      const characterRuby =
-        RUBY_DEFINITIONS[character] ?? KANJI_RUBY_DEFINITIONS[character]
-
-      if (characterRuby && /\p{Script=Han}/u.test(character)) {
-        parts.push(
-          <ruby key={`${character}-${index}`}>
-            {character}
-            <rt>{characterRuby}</rt>
-          </ruby>,
-        )
-      } else {
-        parts.push(
-          balancePlainText &&
-            !/\s/u.test(character) &&
-            !/[ぁ-ゖァ-ヶー]/u.test(character) ? (
-            <ruby className="ruby-placeholder" key={`plain-${character}-${index}`}>
-              {character}
-              <rt aria-hidden="true">{'\u00a0'}</rt>
-            </ruby>
-          ) : (
-            character
-          ),
-        )
-      }
-      index += 1
-    }
-  }
-
-  return <>{parts}</>
+function RailInfoItem({ children, image, route = false }) {
+  return (
+    <span className={`rail-info-item${route ? ' rail-info-route' : ''}`}>
+      <img src={image} alt="" aria-hidden="true" />
+      <span>{children}</span>
+    </span>
+  )
 }
 
 function MovingTrain({ motion, duration, ghost = false }) {
@@ -1268,6 +513,18 @@ function App() {
   })
 
   const currentStage = selectedStage ? STAGES[selectedStage] : null
+  const relayCells = currentStage
+    ? currentStage.relayGroups.flatMap((relayGroup, relayIndex) =>
+        relayGroup.cells.map((cell, cellIndex) => ({
+          ...cell,
+          relayIndex,
+          relayNumber: relayIndex + 1,
+          cellIndex,
+          relayLength: relayGroup.cells.length,
+          orientation: getRelayGroupOrientation(relayGroup),
+        })),
+      )
+    : []
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -1308,32 +565,8 @@ function App() {
     setScreen('stageSelect')
   }
 
-  const isSamePosition = (a, b) => a.x === b.x && a.y === b.y
-
-  const getRelayCells = () => {
-    if (!currentStage) return []
-
-    return currentStage.relayGroups.flatMap((relayGroup, relayIndex) =>
-      relayGroup.cells.map((cell, cellIndex) => {
-        const orientation = getRelayGroupOrientation(relayGroup)
-
-        return {
-          ...cell,
-          relayIndex,
-          relayNumber: relayIndex + 1,
-          cellIndex,
-          relayLength: relayGroup.cells.length,
-          orientation,
-        }
-      }),
-    )
-  }
-
-  const getRelayCellAt = (position) => {
-    return getRelayCells().find((relayCell) =>
-      isSamePosition(position, relayCell),
-    )
-  }
+  const getRelayCellAt = (position) =>
+    relayCells.find((relayCell) => isSamePosition(position, relayCell))
 
   const getRelayTargets = () => {
     if (!currentStage) return []
@@ -1345,28 +578,19 @@ function App() {
     }))
   }
 
-  const getObstacleAt = (position) => {
-    return currentStage?.obstacles?.find((obstacle) =>
-      isSamePosition(position, obstacle),
-    )
-  }
+  const getObstacleAt = (position) =>
+    currentStage?.obstacles?.find((obstacle) => isSamePosition(position, obstacle))
 
-  const getCongestionAt = (position) => {
-    return currentStage?.congestionZones?.find((congestionCell) =>
-      isSamePosition(position, congestionCell),
-    )
-  }
+  const getCongestionAt = (position) =>
+    currentStage?.congestionZones?.find((cell) => isSamePosition(position, cell))
 
-  const getTurnaroundPointAt = (position) => {
-    return currentStage?.turnaroundPoints?.find((turnaroundPoint) =>
-      isSamePosition(position, turnaroundPoint),
-    )
-  }
+  const getTurnaroundPointAt = (position) =>
+    currentStage?.turnaroundPoints?.find((point) => isSamePosition(position, point))
 
   const isRelayConnectionPosition = (position) => {
     if (!currentStage?.relayRequiresSlowApproach) return false
 
-    return getRelayCells().some((relayCell) => {
+    return relayCells.some((relayCell) => {
       const direction = getDirectionBetween(position, relayCell)
       const allowedDirections =
         relayCell.orientation === 'single'
@@ -1732,7 +956,7 @@ function App() {
   }
 
   const getRelayMaskAt = (position) => {
-    return getRelayCells().reduce((mask, relayCell, index) => {
+    return relayCells.reduce((mask, relayCell, index) => {
       return isSamePosition(position, relayCell) ? mask | (1 << index) : mask
     }, 0)
   }
@@ -1748,7 +972,7 @@ function App() {
   const findShortestRoute = (requireSpecialPoints = true) => {
     if (!currentStage) return null
 
-    const allRelayMask = (1 << getRelayCells().length) - 1
+    const allRelayMask = (1 << relayCells.length) - 1
     const allTurnaroundMask =
       (1 << (currentStage.turnaroundPoints?.length ?? 0)) - 1
     const startRelayMask = getRelayMaskAt(currentStage.start)
@@ -1883,7 +1107,7 @@ function App() {
   const findRouteToPosition = (targetPositions, requiredRelayIndex) => {
     if (!currentStage) return null
 
-    const requiredRelayMask = getRelayCells().reduce(
+    const requiredRelayMask = relayCells.reduce(
       (mask, relayCell, index) =>
         relayCell.relayIndex <= requiredRelayIndex ? mask | (1 << index) : mask,
       0,
@@ -2472,6 +1696,11 @@ function App() {
   }
 
   const shortestRoute = currentStage ? findShortestRoute() : null
+  const hasRelayLegend = relayCells.length > 0
+  const hasTurnaroundLegend =
+    (currentStage?.turnaroundPoints?.length ?? 0) > 0
+  const railInfoItemCount =
+    4 + Number(hasRelayLegend) + Number(hasTurnaroundLegend)
   const shortestRouteRailCount =
     shortestRoute?.positions.filter((position) => getRailAt(position.x, position.y))
       .length ?? 0
@@ -2767,104 +1996,6 @@ function App() {
   const hasTutorialOverlay = Boolean(
     tutorialStep || specialTutorialKind || shouldShowTurnaroundDemo,
   )
-  const standardTutorialInstructions = {
-    1: {
-      title: 'レールを置こう',
-      body: '黄色のマスを押そう',
-    },
-    2: {
-      title: 'レールを消そう',
-      body: '置いたレールを押そう',
-    },
-    3: {
-      title: 'もう一度置こう',
-      body: '黄色のマスを押そう',
-    },
-    4: {
-      title: '全部片付けよう',
-      body: '全て片付けるを押そう',
-    },
-    5: {
-      title: '中継地点へ進もう',
-      body: '黄色のマスを押そう',
-    },
-    6: {
-      title: '中継地点へつなごう',
-      body: '次のマスを押そう',
-    },
-    7: {
-      title: '電車を見てみよう',
-      body: 'トンネル右を押そう',
-    },
-    8: {
-      title: 'ゴールへつなごう',
-      body: 'どちらかを押そう',
-    },
-    9: {
-      title: '出発しよう',
-      body: '出発を押そう',
-    },
-  }
-  const fastRailTutorialInstructions = {
-    1: {
-      title: '低速レールを置こう',
-      body: '黄色のマスを押そう',
-    },
-    2: {
-      title: '高速レールを選ぼう',
-      body: '高速レールを押そう',
-    },
-    3: {
-      title: '高速レールを置こう',
-      body: '黄色のマスを押そう',
-    },
-    4: {
-      title: 'もう1本置こう',
-      body: '黄色のマスを押そう',
-    },
-    5: {
-      title: '低速レールを選ぼう',
-      body: '低速レールを押そう',
-    },
-    6: {
-      title: 'ゴールへつなごう',
-      body: '黄色の3マスを置こう',
-    },
-    7: {
-      title: '出発しよう',
-      body: '出発を押そう',
-    },
-  }
-  const estimateTutorialInstructions = {
-    1: {
-      title: '低速レールを置こう',
-      body: '黄色のマスを押そう',
-    },
-    2: {
-      title: '中継地点までつなごう',
-      body: '次のマスを押そう',
-    },
-    3: {
-      title: '電車を見てみよう',
-      body: 'トンネル右を押そう',
-    },
-    4: {
-      title: 'ゴールへつなごう',
-      body: 'どちらかを押そう',
-    },
-    5: {
-      title: '数をメモしよう',
-      body: '低速4、他は0を入力',
-    },
-    6: {
-      title: '予想時間を入力',
-      body: '予想に6を入力',
-    },
-    7: {
-      title: '出発しよう',
-      body: '出発を押そう',
-    },
-  }
   const tutorialInstructions = currentStage?.isEstimateTutorial
     ? estimateTutorialInstructions
     : isFastRailTutorialActive
@@ -3705,7 +2836,7 @@ function App() {
                         ? 'ゴールまで'
                         : connectedRelayRoute
                           ? `中継地点${connectedRelayRoute.relayNumber}まで`
-                          : getRelayCells().length > 0
+                          : relayCells.length > 0
                             ? '中継地点まで'
                             : 'ゴールまで'
                     }
@@ -3739,7 +2870,7 @@ function App() {
                         ? `最短経路 ${shortestRouteRailCount}マス / 目標 ${currentStage.targetTime}秒`
                         : connectedRelayRoute
                           ? `ここまで ${visibleRouteRailCount}マス。ゴールまでつなげると最終予想時間に変わります。`
-                          : getRelayCells().length > 0
+                          : relayCells.length > 0
                             ? 'まずはスタートから中継地点までレールをつなげてください。'
                             : 'スタートからゴールまでレールをつなげると表示されます。'
                     }
@@ -3758,37 +2889,36 @@ function App() {
             )}
           </div>
 
-          <div className="rail-info" aria-label="マップの凡例">
-            <span className="rail-info-item">
-              <img src={redStationBuildingImage} alt="" aria-hidden="true" />
-              <span><RubyText>スタート</RubyText></span>
-            </span>
-            <span className="rail-info-item">
-              <img src={stationBuildingImage} alt="" aria-hidden="true" />
-              <span><RubyText>ゴール</RubyText></span>
-            </span>
-            <span className="rail-info-item">
-              <img src={tunnelEntranceRailLeftImage} alt="" aria-hidden="true" />
-              <span><RubyText>中継地点</RubyText></span>
-            </span>
-            {currentStage.turnaroundPoints?.length > 0 && (
-              <span className="rail-info-item">
-                <img src={leverImage} alt="" aria-hidden="true" />
-                <span><RubyText>折り返し地点</RubyText></span>
-              </span>
+          <div
+            className="rail-info"
+            aria-label="マップの凡例"
+            data-item-count={railInfoItemCount}
+            style={{ '--rail-info-columns': railInfoItemCount }}
+          >
+            <RailInfoItem image={redStationBuildingImage}>
+              <RubyText>スタート</RubyText>
+            </RailInfoItem>
+            <RailInfoItem image={stationBuildingImage}>
+              <RubyText>ゴール</RubyText>
+            </RailInfoItem>
+            {hasRelayLegend && (
+              <RailInfoItem image={tunnelEntranceRailLeftImage}>
+                <RubyText>中継地点</RubyText>
+              </RailInfoItem>
             )}
-            <span className="rail-info-item">
-              <img src={straightRailImage} alt="" aria-hidden="true" />
-              <span><RubyText text={`配置 ${placedRails.length}マス`} /></span>
-            </span>
-            <span className="rail-info-item rail-info-route">
-              <img src={straightRailImage} alt="" aria-hidden="true" />
-              <span>
-                <RubyText
-                  text={`経路 ${visibleRoute ? `${visibleRouteRailCount}マス` : '未接続'}`}
-                />
-              </span>
-            </span>
+            {hasTurnaroundLegend && (
+              <RailInfoItem image={leverImage}>
+                <RubyText>折り返し地点</RubyText>
+              </RailInfoItem>
+            )}
+            <RailInfoItem image={straightRailImage}>
+              <RubyText text={`配置 ${placedRails.length}マス`} />
+            </RailInfoItem>
+            <RailInfoItem image={straightRailImage} route>
+              <RubyText
+                text={`経路 ${visibleRoute ? `${visibleRouteRailCount}マス` : '未接続'}`}
+              />
+            </RailInfoItem>
           </div>
 
           {trainRun && (
