@@ -197,6 +197,7 @@ const SPECIAL_CELL_IMAGES = {
 const ANIMATION_MS_PER_GAME_SECOND = 550
 const TRAIN_ANIMATION_SPEED_MULTIPLIER = 1.5
 const STAGE_RESULTS_STORAGE_KEY = 'train-game-stage-results-v2'
+const ESTIMATE_MODE_UNLOCK_STORAGE_KEY = 'train-game-estimate-mode-unlocked-v1'
 const EXACT_TIME_TOLERANCE = 0.0001
 
 const isSamePosition = (a, b) => a.x === b.x && a.y === b.y
@@ -319,6 +320,22 @@ const loadStageResults = () => {
     )
   } catch {
     return {}
+  }
+}
+
+const hasClearedAllNormalStages = (stageResults) =>
+  STAGE_ORDER.every((stageId) =>
+    isStageCleared(
+      STAGES[stageId],
+      stageResults[getStageResultKey(stageId, false)],
+    ),
+  )
+
+const loadEstimateModeUnlocked = () => {
+  try {
+    return window.localStorage.getItem(ESTIMATE_MODE_UNLOCK_STORAGE_KEY) === 'true'
+  } catch {
+    return false
   }
 }
 
@@ -488,6 +505,9 @@ function App() {
   const [routePhase, setRoutePhase] = useState(0)
   const [ghostMotion, setGhostMotion] = useState(null)
   const [stageResults, setStageResults] = useState(loadStageResults)
+  const [estimateModeUnlocked, setEstimateModeUnlocked] = useState(
+    () => loadEstimateModeUnlocked() || hasClearedAllNormalStages(loadStageResults()),
+  )
   const [estimateMode, setEstimateMode] = useState(false)
   const [stageWorldIndex, setStageWorldIndex] = useState(0)
   const [stageWorldFacing, setStageWorldFacing] = useState('right')
@@ -532,6 +552,12 @@ function App() {
       JSON.stringify(stageResults),
     )
   }, [stageResults])
+
+  useEffect(() => {
+    if (!estimateModeUnlocked) return
+
+    window.localStorage.setItem(ESTIMATE_MODE_UNLOCK_STORAGE_KEY, 'true')
+  }, [estimateModeUnlocked])
 
   const startStage = (stageNumber) => {
     const worldIndex = getStageWorldIndexForStageId(stageNumber)
@@ -1338,16 +1364,24 @@ function App() {
 
     const timer = window.setTimeout(() => {
       setResult(trainRun.result)
-      setStageResults((previousResults) => ({
-        ...previousResults,
+      const nextStageResults = {
+        ...stageResults,
         [trainRun.resultKey]: trainRun.result,
-      }))
+      }
+      setStageResults(nextStageResults)
+      if (
+        !estimateModeUnlocked &&
+        trainRun.resultKey.startsWith('normal:') &&
+        hasClearedAllNormalStages(nextStageResults)
+      ) {
+        setEstimateModeUnlocked(true)
+      }
       setTrainRun(null)
       setScreen('result')
     }, remainingDuration / playbackRate + 450)
 
     return () => window.clearTimeout(timer)
-  }, [screen, trainRun])
+  }, [estimateModeUnlocked, screen, stageResults, trainRun])
 
   useEffect(() => {
     if (!trainRun || screen !== 'game') return undefined
@@ -1976,6 +2010,8 @@ function App() {
           ? 'relay'
           : selectedStage === '4' && currentStage?.obstacles?.length > 0
             ? 'obstacleCurve'
+            : selectedStage === '5' && currentStage?.relayRequiresSlowApproach
+              ? 'slowZone'
             : null
       : null
   const currentStageResultKey = selectedStage
@@ -2015,6 +2051,10 @@ function App() {
         ? 'slow'
         : null
     : null
+  const isClearRailsTutorialStep =
+    Boolean(currentStage?.isTutorial) &&
+    !currentStage?.isEstimateTutorial &&
+    tutorialStep === 4
   const isSpecialTutorialTargetCell = (x, y) => {
     if (specialTutorialKind === 'relay') {
       return Boolean(getRelayCellAt({ x, y }))
@@ -2029,6 +2069,10 @@ function App() {
         (x === 3 && y === currentStage.start.y) ||
         (x === 2 && y === currentStage.start.y - 1)
       )
+    }
+
+    if (specialTutorialKind === 'slowZone') {
+      return isRelayConnectionPosition({ x, y })
     }
 
     return false
@@ -2307,6 +2351,7 @@ function App() {
                 type="button"
                 aria-pressed={estimateMode}
                 className={estimateMode ? 'active' : ''}
+                disabled={!estimateModeUnlocked}
                 onClick={() => setEstimateMode(true)}
               >
                 <RubyText>見積もりモード</RubyText>
@@ -2315,7 +2360,9 @@ function App() {
             <p>
               <RubyText
                 text={
-                  estimateMode
+                  !estimateModeUnlocked
+                    ? '通常モードを全ステージクリアすると解放されます。'
+                    : estimateMode
                     ? '時間を予想してから出発し、あとで答え合わせします。'
                     : '予想時間を確認しながらレールを配置します。'
                 }
@@ -2563,7 +2610,7 @@ function App() {
                   className="tutorial-skip-button"
                   onClick={() => setTutorialSkipped(true)}
                 >
-                  <RubyText>スキップ</RubyText>
+                  <RubyText>OK</RubyText>
                 </button>
               </div>
               <p>
@@ -2582,10 +2629,27 @@ function App() {
                   className="tutorial-skip-button"
                   onClick={() => setTutorialSkipped(true)}
                 >
-                  <RubyText>スキップ</RubyText>
+                  <RubyText>OK</RubyText>
                 </button>
               </div>
               <p><RubyText>縦置きでカーブ接続</RubyText></p>
+            </section>
+          )}
+
+          {specialTutorialKind === 'slowZone' && (
+            <section className="tutorial-guide tutorial-guide-info" aria-live="polite">
+              <div className="tutorial-guide-heading">
+                <span><RubyText>説明</RubyText></span>
+                <h3><RubyText>のんびりエリアを見よう</RubyText></h3>
+                <button
+                  type="button"
+                  className="tutorial-skip-button"
+                  onClick={() => setTutorialSkipped(true)}
+                >
+                  <RubyText>OK</RubyText>
+                </button>
+              </div>
+              <p><RubyText>ここは1マス1秒</RubyText></p>
             </section>
           )}
 
@@ -2648,32 +2712,27 @@ function App() {
                   onClick={() => setSelectedRailType(railType)}
                   aria-pressed={selectedRailType === railType}
                 >
-                  <strong>
-                    <RubyText
-                      text={
-                        railType === 'fast' && remainingFastRails !== null
-                          ? `高速レール：あと${remainingFastRails}本`
-                          : RAIL_TYPES[railType].label
-                      }
-                    />
-                  </strong>
+                  {railType === 'fast' && currentStage.maxFastRails != null ? (
+                    <strong className="rail-card-fast-count">
+                      <RubyText>高速レール</RubyText>
+                      <span><RubyText text={`${remainingFastRails}本`} /></span>
+                    </strong>
+                  ) : (
+                    <strong><RubyText text={RAIL_TYPES[railType].label} /></strong>
+                  )}
                 </button>
               ))}
               <button
                 disabled={
                   placedRails.length === 0 ||
                   Boolean(trainRun) ||
-                  Boolean(tutorialStep && tutorialStep !== 4)
+                  Boolean(tutorialStep && !isClearRailsTutorialStep)
                 }
-                className={`clear-rails-button ${tutorialStep === 4 ? 'tutorial-control-highlight' : ''}`}
+                className={`clear-rails-button ${isClearRailsTutorialStep ? 'tutorial-control-highlight' : ''}`}
                 onClick={() => {
                   setPlacedRails([])
                   setMessage('')
-                  if (
-                    currentStage.isTutorial &&
-                    !currentStage.isEstimateTutorial &&
-                    tutorialStep === 4
-                  ) {
+                  if (isClearRailsTutorialStep) {
                     setTutorialRailsCleared(true)
                   }
                 }}
